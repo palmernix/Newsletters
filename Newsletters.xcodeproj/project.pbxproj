@@ -6,6 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		534A21BA2D9F3A930076E6C9 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 534A21B92D9F3A930076E6C9 /* FirebaseCore */; };
+		534A21BC2D9F3A930076E6C9 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 534A21BB2D9F3A930076E6C9 /* FirebaseFirestore */; };
+		534A21BE2D9F41240076E6C9 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 534A21BD2D9F41240076E6C9 /* FirebaseAuth */; };
+		534A21C12D9F41430076E6C9 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = 534A21C02D9F41430076E6C9 /* KeychainAccess */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		53503B2B2D9EF82200EF5B9E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -73,6 +80,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				534A21C12D9F41430076E6C9 /* KeychainAccess in Frameworks */,
+				534A21BA2D9F3A930076E6C9 /* FirebaseCore in Frameworks */,
+				534A21BE2D9F41240076E6C9 /* FirebaseAuth in Frameworks */,
+				534A21BC2D9F3A930076E6C9 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -93,12 +104,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		534A21B32D9F3A140076E6C9 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		53503B142D9EF82100EF5B9E = {
 			isa = PBXGroup;
 			children = (
 				53503B1F2D9EF82100EF5B9E /* Newsletters */,
 				53503B2D2D9EF82200EF5B9E /* NewslettersTests */,
 				53503B372D9EF82200EF5B9E /* NewslettersUITests */,
+				534A21B32D9F3A140076E6C9 /* Frameworks */,
 				53503B1E2D9EF82100EF5B9E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -133,6 +152,10 @@
 			);
 			name = Newsletters;
 			packageProductDependencies = (
+				534A21B92D9F3A930076E6C9 /* FirebaseCore */,
+				534A21BB2D9F3A930076E6C9 /* FirebaseFirestore */,
+				534A21BD2D9F41240076E6C9 /* FirebaseAuth */,
+				534A21C02D9F41430076E6C9 /* KeychainAccess */,
 			);
 			productName = Newsletters;
 			productReference = 53503B1D2D9EF82100EF5B9E /* Newsletters.app */;
@@ -218,7 +241,8 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				537663402D9F32AB0007CDDD /* XCRemoteSwiftPackageReference "swift-algorithms" */,
-				537663412D9F330C0007CDDD /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				534A21B82D9F3A700076E6C9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				534A21BF2D9F413B0076E6C9 /* XCRemoteSwiftPackageReference "KeychainAccess" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 53503B1E2D9EF82100EF5B9E /* Products */;
@@ -587,6 +611,22 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		534A21B82D9F3A700076E6C9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.11.0;
+			};
+		};
+		534A21BF2D9F413B0076E6C9 /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kishikawakatsumi/KeychainAccess";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
 		537663402D9F32AB0007CDDD /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-algorithms.git";
@@ -595,15 +635,30 @@
 				minimumVersion = 1.2.1;
 			};
 		};
-		537663412D9F330C0007CDDD /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 11.11.0;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		534A21B92D9F3A930076E6C9 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 534A21B82D9F3A700076E6C9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		534A21BB2D9F3A930076E6C9 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 534A21B82D9F3A700076E6C9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		534A21BD2D9F41240076E6C9 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 534A21B82D9F3A700076E6C9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		534A21C02D9F41430076E6C9 /* KeychainAccess */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 534A21BF2D9F413B0076E6C9 /* XCRemoteSwiftPackageReference "KeychainAccess" */;
+			productName = KeychainAccess;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 53503B152D9EF82100EF5B9E /* Project object */;
 }
