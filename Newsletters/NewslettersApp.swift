@@ -9,6 +9,10 @@ import SwiftUI
 
 @main
 struct NewslettersApp: App {
+    init() {
+        FirebaseApp.configure()
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
