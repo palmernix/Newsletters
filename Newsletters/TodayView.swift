@@ -11,7 +11,7 @@ struct TodayView: View {
     var body: some View {
         let todayNewsletters = viewModel.newsletters.filter { isToday($0.newsletterDate) }
         let groups = todayNewsletters.groupedForToday()
-        let customOrder = ["The New York Times", "Morning Brew", "Sigma Xi SmartBrief"]
+        let customOrder = ["The New York Times", "Morning Brew", "Sigma Xi", "HEATED"]
         let sortedKeys = groups.keys.sorted {
             let i1 = customOrder.firstIndex(of: $0) ?? Int.max
             let i2 = customOrder.firstIndex(of: $1) ?? Int.max
@@ -194,6 +194,10 @@ extension Array where Element == NewsletterMetadata {
                 key = "The New York Times"
             } else if ["Morning Brew", "IT Brew", "Tech Brew"].contains(newsletter.vendorName) {
                 key = "Morning Brew"
+            } else if newsletter.vendorName.contains("Sigma Xi") {
+                key = "Sigma Xi"
+            } else if newsletter.vendorName.contains("HEATED") {
+                key = "HEATED"
             } else {
                 key = newsletter.vendorName
             }
