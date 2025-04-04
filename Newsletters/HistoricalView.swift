@@ -23,6 +23,7 @@ struct HistoricalView: View {
         "The New York Times: The Evening",
         "The New York Times: Breaking News",
         "The New York Times: Climate",
+        "The New York Times: Other",
         "Morning Brew",
         "Tech Brew",
         "IT Brew",
