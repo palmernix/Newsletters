@@ -36,30 +36,9 @@
 		53503B342D9EF82200EF5B9E /* NewslettersUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NewslettersUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		537663462D9F344A0007CDDD /* Exceptions for "Newsletters" folder in "NewslettersTests" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"GoogleService-Info.plist",
-			);
-			target = 53503B292D9EF82200EF5B9E /* NewslettersTests */;
-		};
-		537663472D9F344A0007CDDD /* Exceptions for "Newsletters" folder in "NewslettersUITests" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"GoogleService-Info.plist",
-			);
-			target = 53503B332D9EF82200EF5B9E /* NewslettersUITests */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		53503B1F2D9EF82100EF5B9E /* Newsletters */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				537663462D9F344A0007CDDD /* Exceptions for "Newsletters" folder in "NewslettersTests" target */,
-				537663472D9F344A0007CDDD /* Exceptions for "Newsletters" folder in "NewslettersUITests" target */,
-			);
 			path = Newsletters;
 			sourceTree = "<group>";
 		};
