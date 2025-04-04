@@ -26,7 +26,8 @@ struct HistoricalView: View {
         "Morning Brew",
         "Tech Brew",
         "IT Brew",
-        "Sigma Xi"
+        "Sigma Xi",
+        "HEATED"
     ]
 
     private var sortedKeys: [String] {
@@ -205,6 +206,8 @@ extension Array where Element == NewsletterMetadata {
                 key = "IT Brew"
             } else if sender.contains("Sigma Xi") {
                 key = "Sigma Xi"
+            } else if sender.contains("HEATED") {
+                key = "HEATED"
             } else {
                 key = sender
             }
