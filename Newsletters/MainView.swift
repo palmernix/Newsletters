@@ -16,9 +16,7 @@ struct MainView: View {
         VStack(spacing: 0) {
             // Main content
             if selectedTab == 0 {
-                TodayView(viewModel: viewModel, settingsViewModel: settingsViewModel)
-            } else if selectedTab == 1 {
-                HistoricalView(viewModel: viewModel, settingsViewModel: settingsViewModel)
+                NewslettersView(viewModel: viewModel, settingsViewModel: settingsViewModel)
             } else {
                 SettingsView(viewModel: settingsViewModel)
             }
