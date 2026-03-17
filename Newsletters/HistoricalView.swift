@@ -3,6 +3,7 @@ import FirebaseFirestore
 
 struct HistoricalView: View {
     @ObservedObject var viewModel: NewsletterMetadataViewModel
+    @ObservedObject var settingsViewModel: SettingsViewModel
     @State private var expandedGroup: String? = nil
     @State private var selectedNewsletter: NewsletterMetadata?
     @State private var showingActionSheet = false
@@ -10,7 +11,7 @@ struct HistoricalView: View {
 
     private var historicalNewsletters: [NewsletterMetadata] {
         viewModel.newsletters.filter {
-            !Calendar.current.isDateInToday($0.newsletterDate)
+            !Calendar.current.isDateInToday($0.newsletterDate) && settingsViewModel.shouldShow($0)
         }
     }
 

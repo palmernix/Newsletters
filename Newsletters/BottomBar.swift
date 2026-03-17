@@ -16,14 +16,22 @@ struct BottomBar: View {
                 Text("Today")
                     .frame(maxWidth: .infinity)
             }
-            
-            // Insert a vertical divider
+
             Divider()
                 .frame(height: 30)
                 .padding(.vertical, 8)
-            
+
             Button(action: { selectedTab = 1 }) {
                 Text("Historical")
+                    .frame(maxWidth: .infinity)
+            }
+
+            Divider()
+                .frame(height: 30)
+                .padding(.vertical, 8)
+
+            Button(action: { selectedTab = 2 }) {
+                Text("Settings")
                     .frame(maxWidth: .infinity)
             }
         }

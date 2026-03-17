@@ -3,13 +3,14 @@ import FirebaseFirestore
 
 struct TodayView: View {
     @ObservedObject var viewModel: NewsletterMetadataViewModel
+    @ObservedObject var settingsViewModel: SettingsViewModel
 
     @State private var selectedNewsletter: NewsletterMetadata?
     @State private var showingActionSheet = false
     @State private var isNavigating = false
 
     var body: some View {
-        let todayNewsletters = viewModel.newsletters.filter { isToday($0.newsletterDate) }
+        let todayNewsletters = viewModel.newsletters.filter { isToday($0.newsletterDate) && settingsViewModel.shouldShow($0) }
         let groups = todayNewsletters.groupedForToday()
         let customOrder = ["The New York Times", "Morning Brew", "Sigma Xi", "HEATED"]
         let sortedKeys = groups.keys.sorted {
