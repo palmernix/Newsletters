@@ -13,6 +13,8 @@ enum NewsletterGroup: String, CaseIterable {
     case sigmaXi = "Sigma Xi"
     case heated = "HEATED"
     case historyFacts = "History Facts"
+    case evolvingAI = "Evolving AI"
+    case ceoReport = "The CEO Report"
 }
 
 enum Newsletter: String, CaseIterable, Identifiable {
@@ -24,6 +26,8 @@ enum Newsletter: String, CaseIterable, Identifiable {
     case sigmaXiSmartBrief
     case heated
     case historyFacts
+    case evolvingAI
+    case ceoReport
 
     var id: String { rawValue }
 
@@ -37,6 +41,8 @@ enum Newsletter: String, CaseIterable, Identifiable {
         case .sigmaXiSmartBrief: return "Sigma Xi SmartBrief"
         case .heated: return "HEATED"
         case .historyFacts: return "History Facts Daily"
+        case .evolvingAI: return "Evolving AI"
+        case .ceoReport: return "The CEO Report"
         }
     }
 
@@ -50,6 +56,8 @@ enum Newsletter: String, CaseIterable, Identifiable {
         case .sigmaXiSmartBrief: return ["sigmaxi@smartbrief.com"]
         case .heated: return ["heated@substack.com"]
         case .historyFacts: return ["hello@historyfacts.com"]
+        case .evolvingAI: return ["hello.evolvingai@gmail.com"]
+        case .ceoReport: return ["max@marketingmax.io"]
         }
     }
 
@@ -60,6 +68,8 @@ enum Newsletter: String, CaseIterable, Identifiable {
         case .sigmaXiSmartBrief: return .sigmaXi
         case .heated: return .heated
         case .historyFacts: return .historyFacts
+        case .evolvingAI: return .evolvingAI
+        case .ceoReport: return .ceoReport
         }
     }
 
