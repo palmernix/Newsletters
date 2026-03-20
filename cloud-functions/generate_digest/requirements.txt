@@ -1,0 +1,4 @@
+firebase-functions>=0.1.0
+firebase-admin>=6.0.0
+google-genai>=1.0.0
+html2text>=2024.2.26

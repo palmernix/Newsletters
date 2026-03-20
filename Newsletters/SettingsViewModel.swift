@@ -7,53 +7,83 @@
 
 import SwiftUI
 import FirebaseFirestore
+import FirebaseAuth
 
 class SettingsViewModel: ObservableObject {
-    @Published var enabledNewsletters: Set<String> = Set(Newsletter.allCases.map { $0.rawValue })
+    @Published var enabledNewsletters: Set<String> = Set(Newsletter.allSenderEmails)
+    @Published var sectionOrder: [String] = UserDefaults.standard.stringArray(forKey: "digestSectionOrder") ?? []
+
+    private static let defaultSections = [
+        "Business & Finance", "Startups & Venture Capital", "Artificial Intelligence",
+        "US Politics", "World Politics", "Healthcare", "Science", "Technology",
+        "Climate & Environment", "Culture & Entertainment", "Sports", "Other"
+    ]
+
+    func fetchDigestCategories() {
+        db.collection("Config").document("digestCategories").getDocument { [weak self] snapshot, error in
+            guard let self else { return }
+            let sections = (snapshot?.data()?["sections"] as? [String]) ?? Self.defaultSections
+            DispatchQueue.main.async { self.mergeSectionOrder(canonical: sections) }
+        }
+    }
+
+    private func mergeSectionOrder(canonical: [String]) {
+        let stored = UserDefaults.standard.stringArray(forKey: "digestSectionOrder") ?? []
+        let ordered = stored.filter { canonical.contains($0) }
+        let missing = canonical.filter { !ordered.contains($0) }
+        sectionOrder = ordered + missing
+    }
+
+    func moveSections(from: IndexSet, to: Int) {
+        sectionOrder.move(fromOffsets: from, toOffset: to)
+        UserDefaults.standard.set(sectionOrder, forKey: "digestSectionOrder")
+    }
 
     private var db = Firestore.firestore()
     private var listener: ListenerRegistration?
-    private let documentId = "userPreferences"
+    private var userId: String? { Auth.auth().currentUser?.uid }
 
     func fetchSettings() {
-        listener = db.collection("Settings").document(documentId)
-            .addSnapshotListener { [weak self] (snapshot, error) in
-                if let error = error {
-                    print("Error fetching settings: \(error)")
-                    return
-                }
-
+        guard let userId else { return }
+        listener = db.collection("users").document(userId)
+            .collection("settings").document("preferences")
+            .addSnapshotListener { [weak self] snapshot, error in
+                if let error = error { print("Error fetching settings: \(error)"); return }
                 guard let data = snapshot?.data(),
                       let enabled = data["enabledNewsletters"] as? [String] else {
-                    // No settings doc yet — default to all enabled
+                    // No doc yet — seed with all newsletters enabled
+                    self?.seedSettings(userId: userId)
                     return
                 }
-
-                DispatchQueue.main.async {
-                    self?.enabledNewsletters = Set(enabled)
-                }
+                DispatchQueue.main.async { self?.enabledNewsletters = Set(enabled) }
             }
     }
 
+    private func seedSettings(userId: String) {
+        let data: [String: Any] = ["enabledNewsletters": Newsletter.allSenderEmails]
+        db.collection("users").document(userId)
+            .collection("settings").document("preferences")
+            .setData(data)
+    }
+
     func toggle(_ newsletter: Newsletter) {
-        if enabledNewsletters.contains(newsletter.rawValue) {
-            enabledNewsletters.remove(newsletter.rawValue)
+        if isEnabled(newsletter) {
+            newsletter.senderEmails.forEach { enabledNewsletters.remove($0) }
         } else {
-            enabledNewsletters.insert(newsletter.rawValue)
+            newsletter.senderEmails.forEach { enabledNewsletters.insert($0) }
         }
         saveToFirestore()
     }
 
     func isEnabled(_ newsletter: Newsletter) -> Bool {
-        enabledNewsletters.contains(newsletter.rawValue)
+        newsletter.senderEmails.contains { enabledNewsletters.contains($0) }
     }
 
     /// Check if a newsletter metadata item should be shown based on its sender
     func shouldShow(_ metadata: NewsletterMetadata) -> Bool {
-        guard let newsletter = Newsletter.from(sender: metadata.sender) else {
-            return true // Show unknown senders by default
-        }
-        return enabledNewsletters.contains(newsletter.rawValue)
+        // Extract email from "Name <email@domain>" or use full string
+        let sender = metadata.sender.lowercased()
+        return enabledNewsletters.contains { sender.contains($0.lowercased()) }
     }
 
     /// Writes the full list of all sender emails to Firestore so AppsScript can read it.
@@ -71,14 +101,12 @@ class SettingsViewModel: ObservableObject {
     }
 
     private func saveToFirestore() {
-        let data: [String: Any] = [
-            "enabledNewsletters": Array(enabledNewsletters)
-        ]
-
-        db.collection("Settings").document(documentId).setData(data) { error in
-            if let error = error {
-                print("Error saving settings: \(error.localizedDescription)")
+        guard let userId else { return }
+        let data: [String: Any] = ["enabledNewsletters": Array(enabledNewsletters)]
+        db.collection("users").document(userId)
+            .collection("settings").document("preferences")
+            .setData(data) { error in
+                if let error = error { print("Error saving settings: \(error)") }
             }
-        }
     }
 }

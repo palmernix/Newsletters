@@ -1,0 +1,12 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "functions": [
+    {
+      "source": "cloud-functions/generate_digest",
+      "codebase": "generate-digest",
+      "runtime": "python311"
+    }
+  ]
+}
