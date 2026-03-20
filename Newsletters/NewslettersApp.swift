@@ -8,33 +8,43 @@
 import SwiftUI
 import FirebaseCore
 import FirebaseAuth
+import GoogleSignIn
 import KeychainAccess
 
 @main
 struct NewslettersApp: App {
     @State private var needsLogin: Bool = false
-    
+
     init() {
-        FirebaseApp.configure();
-        
-        if !areCredentialsStored() {
-            // If not stored, set a flag to show the login UI.
-            _needsLogin = State(initialValue: true)
-        } else {
+        FirebaseApp.configure()
+
+        if Auth.auth().currentUser != nil {
+            // Firebase already has a persisted session (Google or email/password)
+            _needsLogin = State(initialValue: false)
+        } else if areCredentialsStored() {
+            // Fall back to keychain for existing email/password users
+            _needsLogin = State(initialValue: false)
             signInWithStoredCredentials()
+        } else {
+            _needsLogin = State(initialValue: true)
         }
     }
-    
+
     var body: some Scene {
         WindowGroup {
-            if needsLogin {
-                LoginView(needsLogin: $needsLogin)
-            } else {
-                MainView()
+            Group {
+                if needsLogin {
+                    LoginView(needsLogin: $needsLogin)
+                } else {
+                    MainView(needsLogin: $needsLogin)
+                }
+            }
+            .onOpenURL { url in
+                GIDSignIn.sharedInstance.handle(url)
             }
         }
     }
-    
+
     func areCredentialsStored() -> Bool {
         let keychain = Keychain(service: "com.palmernix.Newsletters")
         if let email = try? keychain.get("userEmail"),
@@ -44,23 +54,19 @@ struct NewslettersApp: App {
         }
         return false
     }
-    
+
     func signInWithStoredCredentials() {
-        print("Authenticating user.")
         let keychain = Keychain(service: "com.palmernix.Newsletters")
         if let email = try? keychain.get("userEmail"),
            let password = try? keychain.get("userPassword"),
            !email.isEmpty, !password.isEmpty {
-            
             Auth.auth().signIn(withEmail: email, password: password) { authResult, error in
                 if let error = error {
                     print("Error signing in: \(error.localizedDescription)")
                 } else {
-                    print("Successfully signed in with user id: \(authResult?.user.uid ?? "Unknown")")
+                    print("Signed in: \(authResult?.user.uid ?? "")")
                 }
             }
-        } else {
-            print("Stored credentials not found in Keychain.")
         }
     }
 }
