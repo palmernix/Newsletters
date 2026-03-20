@@ -7,7 +7,7 @@ struct TodayView: View {
 
     @State private var selectedNewsletter: NewsletterMetadata?
     @State private var showingActionSheet = false
-    @State private var isNavigating = false
+    @Binding var isNavigating: Bool
 
     var body: some View {
         let todayNewsletters = viewModel.newsletters.filter { isToday($0.newsletterDate) && settingsViewModel.shouldShow($0) }
@@ -125,7 +125,7 @@ struct NewsletterMetadataRow: View {
     var body: some View {
         ZStack {
             NavigationLink(
-                destination: NewsletterReaderView(newsletter: newsletter),
+                destination: NewsletterReaderView(newsletter: newsletter, onDismiss: { isNavigating = false }),
                 isActive: Binding(
                     get: { isSelected && isNavigating },
                     set: { if !$0 { isNavigating = false } }

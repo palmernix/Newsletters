@@ -7,7 +7,7 @@ struct HistoricalView: View {
     @State private var expandedGroup: String? = nil
     @State private var selectedNewsletter: NewsletterMetadata?
     @State private var showingActionSheet = false
-    @State private var isNavigating = false
+    @Binding var isNavigating: Bool
 
     private var historicalNewsletters: [NewsletterMetadata] {
         viewModel.newsletters.filter {
@@ -113,7 +113,7 @@ struct HistoricalGroupSectionView: View {
                 ForEach(newsletters) { newsletter in
                     ZStack {
                         NavigationLink(
-                            destination: NewsletterReaderView(newsletter: newsletter),
+                            destination: NewsletterReaderView(newsletter: newsletter, onDismiss: { isNavigating = false }),
                             isActive: Binding(
                                 get: { selectedNewsletter?.id == newsletter.id && isNavigating },
                                 set: { if !$0 { isNavigating = false }}

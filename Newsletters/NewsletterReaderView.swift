@@ -3,6 +3,7 @@ import FirebaseFirestore
 
 struct NewsletterReaderView: View {
     let newsletter: NewsletterMetadata  // Metadata passed from previous view, with its document ID available in newsletter.id
+    var onDismiss: (() -> Void)? = nil
 
     @StateObject private var dataVM = NewsletterDataViewModel()
     @Environment(\.presentationMode) private var presentationMode
@@ -13,6 +14,7 @@ struct NewsletterReaderView: View {
             HStack {
                 // Back arrow on the far left
                 Button(action: {
+                    onDismiss?()
                     presentationMode.wrappedValue.dismiss()
                 }) {
                     Image(systemName: "chevron.left")
