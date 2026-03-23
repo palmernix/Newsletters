@@ -11,7 +11,7 @@ struct NewslettersView: View {
     @ObservedObject var viewModel: NewsletterMetadataViewModel
     @ObservedObject var settingsViewModel: SettingsViewModel
     @State private var selectedSegment = 0
-    @State private var isNavigating = false
+    @Binding var isNavigating: Bool
 
     var body: some View {
         VStack(spacing: 0) {

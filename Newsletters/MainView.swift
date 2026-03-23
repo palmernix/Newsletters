@@ -13,6 +13,7 @@ struct MainView: View {
     @StateObject private var viewModel = NewsletterMetadataViewModel()
     @StateObject private var settingsViewModel = SettingsViewModel()
     @State private var selectedTab = 1
+    @State private var isNavigatingToReader = false
     @State private var authListenerHandle: AuthStateDidChangeListenerHandle? = nil
     @State private var didEstablishAuth = false
 
@@ -20,16 +21,20 @@ struct MainView: View {
         VStack(spacing: 0) {
             // Main content
             if selectedTab == 0 {
-                DigestView(metadataViewModel: viewModel, settingsViewModel: settingsViewModel)
+                DigestView(metadataViewModel: viewModel, settingsViewModel: settingsViewModel, isNavigating: $isNavigatingToReader)
             } else if selectedTab == 1 {
-                NewslettersView(viewModel: viewModel, settingsViewModel: settingsViewModel)
+                NewslettersView(viewModel: viewModel, settingsViewModel: settingsViewModel, isNavigating: $isNavigatingToReader)
             } else {
                 SettingsView(viewModel: settingsViewModel, needsLogin: $needsLogin)
             }
 
-            // Custom tab bar at the bottom
-            BottomBar(selectedTab: $selectedTab)
+            // Custom tab bar at the bottom — hidden while reading a newsletter
+            if !isNavigatingToReader {
+                BottomBar(selectedTab: $selectedTab)
+            }
         }
+        // Stale navigation flag can't carry over when the user switches tabs
+        .onChange(of: selectedTab) { _ in isNavigatingToReader = false }
         .onAppear {
             // Set up the snapshot listeners once on launch.
             viewModel.fetchMetadata()

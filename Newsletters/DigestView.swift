@@ -15,7 +15,7 @@ struct DigestView: View {
 
     // Navigation state (mirrors TodayView/HistoricalView pattern)
     @State private var navigatingTo: NewsletterMetadata? = nil
-    @State private var isNavigating = false
+    @Binding var isNavigating: Bool
     @State private var showRefreshBanner = false
     @State private var expandedSection: String? = nil
     @State private var authListenerHandle: AuthStateDidChangeListenerHandle? = nil
