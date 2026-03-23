@@ -64,6 +64,7 @@ struct NewslettersApp: App {
             Auth.auth().signIn(withEmail: email, password: password) { authResult, error in
                 if let error = error {
                     print("Error signing in: \(error.localizedDescription)")
+                    DispatchQueue.main.async { self.needsLogin = true }
                 } else {
                     print("Signed in: \(authResult?.user.uid ?? "")")
                 }
