@@ -11,33 +11,33 @@ struct BottomBar: View {
     @Binding var selectedTab: Int
 
     var body: some View {
-        HStack(spacing: 0) {
-            Button(action: { selectedTab = 0 }) {
-                Text("Digest")
-                    .frame(maxWidth: .infinity)
-            }
-
+        VStack(spacing: 0) {
             Divider()
-                .frame(height: 30)
-                .padding(.vertical, 8)
-
-            Button(action: { selectedTab = 1 }) {
-                Text("Newsletters")
-                    .frame(maxWidth: .infinity)
+            HStack(spacing: 0) {
+                tabItem(icon: "doc.text",     selectedIcon: "doc.text.fill",  label: "Digest",      tab: 0)
+                tabItem(icon: "text.alignleft", selectedIcon: "text.alignleft", label: "Newsletters", tab: 1)
+                tabItem(icon: "gearshape",    selectedIcon: "gearshape.fill", label: "Settings",    tab: 2)
             }
-
-            Divider()
-                .frame(height: 30)
-                .padding(.vertical, 8)
-
-            Button(action: { selectedTab = 2 }) {
-                Text("Settings")
-                    .frame(maxWidth: .infinity)
-            }
+            .padding(.top, 6)
+            .padding(.bottom, 8)
         }
-        .padding(.horizontal)
-        .frame(height: 50)
-        .background(Color(UIColor.systemBackground))
-        .shadow(radius: 2)
+        .background(Color(UIColor.systemBackground).ignoresSafeArea(edges: .bottom))
+    }
+
+    private func tabItem(icon: String, selectedIcon: String, label: String, tab: Int) -> some View {
+        let isSelected = selectedTab == tab
+        return Button {
+            selectedTab = tab
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: isSelected ? selectedIcon : icon)
+                    .font(.system(size: 22))
+                Text(label)
+                    .font(.system(size: 10))
+            }
+            .foregroundColor(isSelected ? .accentColor : Color(.systemGray))
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
     }
 }
