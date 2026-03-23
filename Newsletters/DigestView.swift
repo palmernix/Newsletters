@@ -17,11 +17,14 @@ struct DigestView: View {
     @State private var isNavigating = false
     @State private var showRefreshBanner = false
     @State private var expandedSection: String? = nil
-    @State private var expandedItem: String? = nil
+
+    private let ivoryBg = Color(red: 0.953, green: 0.951, blue: 0.933)
 
     var body: some View {
         NavigationView {
             ZStack(alignment: .top) {
+                ivoryBg.ignoresSafeArea()
+
                 switch digestVM.state {
                 case .idle:
                     EmptyView()
@@ -55,19 +58,7 @@ struct DigestView: View {
                         }
                 }
             }
-            .navigationTitle("Digest")
-            .toolbar {
-                if digestVM.refreshAvailable {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Refresh") {
-                            digestVM.refresh(
-                                todayNewsletters: metadataViewModel.newsletters,
-                                enabledEmails: settingsViewModel.enabledNewsletters
-                            )
-                        }
-                    }
-                }
-            }
+            .navigationBarHidden(true)
             .onChange(of: digestVM.refreshAvailable) { available in
                 if available {
                     withAnimation { showRefreshBanner = true }
@@ -92,13 +83,35 @@ struct DigestView: View {
     private func digestContent(_ digest: DigestDocument) -> some View {
         let sections = sortedSections(digest.sections)
         return ScrollView {
-            LazyVStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 0) {
+                headerView
+                Divider().padding(.horizontal, 20)
                 ForEach(sections, id: \.title) { section in
                     sectionView(section)
+                    Divider().padding(.horizontal, 20)
                 }
             }
-            .padding()
         }
+    }
+
+    private var headerView: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text("Daily Digest")
+                .font(.custom("Georgia-Bold", size: 40))
+                .foregroundColor(.primary)
+            Text(formattedDate)
+                .font(.system(size: 17, weight: .regular))
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 14)
+    }
+
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE, MMMM d"
+        return formatter.string(from: Date())
     }
 
     private func sortedSections(_ sections: [DigestSection]) -> [DigestSection] {
@@ -114,100 +127,91 @@ struct DigestView: View {
     private func sectionView(_ section: DigestSection) -> some View {
         let isExpanded = expandedSection == section.title
         return VStack(alignment: .leading, spacing: 0) {
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.2)) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.22)) {
                     expandedSection = isExpanded ? nil : section.title
                 }
-            }) {
-                HStack(alignment: .center, spacing: 6) {
-                    Text(section.title)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                    Image(systemName: "chevron.right")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.secondary)
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                        .animation(.easeInOut(duration: 0.2), value: isExpanded)
-                    Spacer()
-                }
-                .padding(.vertical, 6)
-            }
-            .buttonStyle(.plain)
-
-            if isExpanded {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(section.items, id: \.headline) { item in
-                        itemView(item)
-                    }
-                }
-                .padding(.top, 8)
-            }
-        }
-    }
-
-    private func itemView(_ item: DigestItem) -> some View {
-        let isExpanded = expandedItem == item.headline
-        return VStack(alignment: .leading, spacing: 0) {
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    expandedItem = isExpanded ? nil : item.headline
-                }
-            }) {
+            } label: {
                 HStack {
-                    Text(item.headline)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                    Text(section.title)
+                        .font(.custom("Georgia-Bold", size: 26))
                         .foregroundColor(.primary)
-                        .multilineTextAlignment(.leading)
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                        .animation(.easeInOut(duration: 0.2), value: isExpanded)
+                    Spacer()
+                    if !isExpanded {
+                        Image(systemName: "plus")
+                            .font(.system(size: 16, weight: .light))
+                            .foregroundColor(Color(.systemGray2))
+                    }
                 }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
             }
             .buttonStyle(.plain)
 
             if isExpanded {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(item.description)
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                    FlowLayout(spacing: 6) {
-                        ForEach(item.sources, id: \.newsletterId) { source in
-                            sourceChip(source)
-                        }
+                VStack(spacing: 10) {
+                    ForEach(section.items, id: \.headline) { item in
+                        itemCard(item)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 10)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 16)
             }
         }
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(10)
     }
 
-    private func sourceChip(_ source: DigestSource) -> some View {
-        Button(action: {
+    private func itemCard(_ item: DigestItem) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.systemGray5))
+                .frame(width: 100, height: 100)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(item.headline)
+                    .font(.custom("Georgia-Bold", size: 16))
+                    .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(item.description)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundColor(.secondary)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: 6)
+
+                if let source = item.sources.first {
+                    sourceLabel(source)
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .cornerRadius(12)
+    }
+
+    private func sourceLabel(_ source: DigestSource) -> some View {
+        Button {
             if let meta = metadataViewModel.newsletters
                 .first(where: { $0.id == source.newsletterId }) {
                 navigatingTo = meta
                 isNavigating = true
             }
-        }) {
-            Text(source.displayName)
-                .font(.caption)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(Color.accentColor.opacity(0.15))
-                .foregroundColor(.accentColor)
-                .cornerRadius(12)
+        } label: {
+            HStack(spacing: 5) {
+                Text(String(source.displayName.prefix(1)))
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: 14, height: 14)
+                    .background(Color.accentColor)
+                    .clipShape(Circle())
+                Text(source.displayName)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(.secondary)
+            }
         }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Empty / Error states
@@ -287,34 +291,5 @@ private struct Banner: View {
         }
         .padding()
         .background(Color.orange.opacity(0.1))
-    }
-}
-
-/// Simple flow layout for wrapping chips.
-private struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        layout(subviews: subviews, width: proposal.width ?? 0).size
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = layout(subviews: subviews, width: bounds.width)
-        for (index, frame) in result.frames.enumerated() {
-            subviews[index].place(at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY), proposal: .unspecified)
-        }
-    }
-
-    private func layout(subviews: Subviews, width: CGFloat) -> (size: CGSize, frames: [CGRect]) {
-        var frames: [CGRect] = []
-        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > width, x > 0 { x = 0; y += rowHeight + spacing; rowHeight = 0 }
-            frames.append(CGRect(origin: CGPoint(x: x, y: y), size: size))
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-        return (CGSize(width: width, height: y + rowHeight), frames)
     }
 }

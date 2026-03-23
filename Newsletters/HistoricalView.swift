@@ -69,7 +69,9 @@ struct HistoricalView: View {
                     ]
                 )
             }
-            .navigationTitle("Newsletters")
+            .scrollContentBackground(.hidden)
+            .background(Color(red: 0.953, green: 0.951, blue: 0.933))
+            .navigationBarHidden(true)
         }
     }
 
@@ -141,7 +143,9 @@ struct HistoricalGroupSectionView: View {
                 }
             },
             label: {
-                Text(groupKey).font(.headline)
+                Text(groupKey)
+                    .font(.custom("Georgia-Bold", size: 18))
+                    .foregroundColor(.primary)
             }
         )
     }

@@ -29,7 +29,7 @@ struct TodayView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                 } else {
                     ForEach(sortedKeys, id: \.self) { key in
-                        Section(header: Text(key)) {
+                        Section {
                             let sortedNewsletters = sortedNewsletters(for: key, newsletters: groups[key] ?? [])
                             ForEach(sortedNewsletters) { newsletter in
                                 NewsletterMetadataRow(
@@ -49,10 +49,17 @@ struct TodayView: View {
                                     }
                                 )
                             }
+                        } header: {
+                            Text(key)
+                                .font(.custom("Georgia-Bold", size: 18))
+                                .textCase(nil)
+                                .foregroundColor(.primary)
                         }
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color(red: 0.953, green: 0.951, blue: 0.933))
             .actionSheet(isPresented: $showingActionSheet) {
                 ActionSheet(
                     title: Text("Actions"),
@@ -66,7 +73,7 @@ struct TodayView: View {
                     ]
                 )
             }
-            .navigationTitle("Newsletters")
+            .navigationBarHidden(true)
         }
     }
 
