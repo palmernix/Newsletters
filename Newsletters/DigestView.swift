@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct DigestView: View {
     @StateObject private var digestVM = DigestViewModel()
@@ -17,6 +18,7 @@ struct DigestView: View {
     @State private var isNavigating = false
     @State private var showRefreshBanner = false
     @State private var expandedSection: String? = nil
+    @State private var authListenerHandle: AuthStateDidChangeListenerHandle? = nil
 
     private let ivoryBg = Color(red: 0.953, green: 0.951, blue: 0.933)
 
@@ -59,21 +61,38 @@ struct DigestView: View {
                 }
             }
             .navigationBarHidden(true)
-            .onChange(of: digestVM.refreshAvailable) { available in
-                if available {
-                    withAnimation { showRefreshBanner = true }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                        withAnimation { showRefreshBanner = false }
-                    }
-                } else {
-                    withAnimation { showRefreshBanner = false }
-                }
-            }
-            .onAppear {
+        }
+        .onAppear {
+            digestVM.checkAndGenerate(
+                todayNewsletters: metadataViewModel.newsletters,
+                enabledEmails: settingsViewModel.enabledNewsletters
+            )
+            authListenerHandle = Auth.auth().addStateDidChangeListener { _, user in
+                guard user != nil else { return }
                 digestVM.checkAndGenerate(
                     todayNewsletters: metadataViewModel.newsletters,
                     enabledEmails: settingsViewModel.enabledNewsletters
                 )
+            }
+        }
+        .onDisappear {
+            authListenerHandle.map { Auth.auth().removeStateDidChangeListener($0) }
+            authListenerHandle = nil
+        }
+        .onChange(of: metadataViewModel.newsletters.count) { _ in
+            digestVM.checkAndGenerate(
+                todayNewsletters: metadataViewModel.newsletters,
+                enabledEmails: settingsViewModel.enabledNewsletters
+            )
+        }
+        .onChange(of: digestVM.refreshAvailable) { available in
+            if available {
+                withAnimation { showRefreshBanner = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                    withAnimation { showRefreshBanner = false }
+                }
+            } else {
+                withAnimation { showRefreshBanner = false }
             }
         }
     }

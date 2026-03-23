@@ -39,6 +39,7 @@ struct NewslettersApp: App {
                     MainView(needsLogin: $needsLogin)
                 }
             }
+            .preferredColorScheme(.light)
             .onOpenURL { url in
                 GIDSignIn.sharedInstance.handle(url)
             }
