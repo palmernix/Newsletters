@@ -34,7 +34,11 @@ struct DigestView: View {
                 case .loading:
                     ProgressView("Generating digest…")
                 case .loaded(let digest):
-                    digestContent(digest)
+                    if digest.sections.isEmpty && (digest.topStories ?? []).isEmpty {
+                        emptyState(.noNewslettersToday)
+                    } else {
+                        digestContent(digest)
+                    }
                 case .empty(let reason):
                     emptyState(reason)
                 case .error(let stale):
@@ -274,21 +278,26 @@ struct DigestView: View {
     // MARK: - Empty / Error states
 
     private func emptyState(_ reason: EmptyReason) -> some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+            headerView
+            Divider().padding(.horizontal, 20)
             Spacer()
             switch reason {
             case .noNewslettersToday:
-                Text("No newsletters received yet today, check back later")
+                Text("No newsletters received yet today, check back later.")
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding()
             case .noneEnabled:
                 Text("No newsletters enabled. Enable newsletters in Settings to generate a digest.")
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding()
             }
             Spacer()
         }
-        .padding()
     }
 
     private func errorState(_ stale: DigestDocument?) -> some View {
