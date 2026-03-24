@@ -3,6 +3,7 @@ import FirebaseFirestore
 
 struct NewsletterReaderView: View {
     let newsletter: NewsletterMetadata  // Metadata passed from previous view, with its document ID available in newsletter.id
+    var scrollToSection: Int? = nil
     var onDismiss: (() -> Void)? = nil
 
     @StateObject private var dataVM = NewsletterDataViewModel()
@@ -59,7 +60,10 @@ struct NewsletterReaderView: View {
                     ProgressView("Loading...")
                         .padding()
                 } else {
-                    HTMLWebView(htmlContent: dataVM.content)
+                    HTMLWebView(
+                        htmlContent: dataVM.content,
+                        scrollToAnchor: scrollToSection.map { "section-\($0)" }
+                    )
                 }
             }
         }
@@ -67,7 +71,7 @@ struct NewsletterReaderView: View {
         .onAppear {
             DispatchQueue.main.async {
                 // Use newsletter.id as the doc ID for querying the data.
-                dataVM.fetchData(newsletterId: newsletter.id ?? "")
+                dataVM.fetchData(newsletterId: newsletter.id ?? "", preferAnchored: scrollToSection != nil)
             }
         }
     }
