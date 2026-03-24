@@ -10,9 +10,12 @@ import FirebaseFirestore
 import FirebaseAuth
 
 class SettingsViewModel: ObservableObject {
-    @Published var enabledNewsletters: Set<String> = Set(Newsletter.allSenderEmails)
+    @Published var enabledNewsletters: Set<String> = []
     @Published var notificationNewsletters: Set<String> = []
     @Published var sectionOrder: [String] = UserDefaults.standard.stringArray(forKey: "digestSectionOrder") ?? []
+
+    /// Reference to the newsletter store, set by MainView after creation.
+    var newsletterStore: NewsletterStore?
 
     private static let defaultSections = [
         "Business & Finance", "Startups & Venture Capital", "Artificial Intelligence",
@@ -56,6 +59,12 @@ class SettingsViewModel: ObservableObject {
                     self?.seedSettings(userId: userId)
                     return
                 }
+
+                // Migrate legacy email-based prefs to sender IDs if needed
+                if let self, self.migrateEmailsToSenderIds(data) {
+                    return // Migration wrote new data; listener will fire again
+                }
+
                 let notifications = data["notificationNewsletters"] as? [String] ?? []
                 DispatchQueue.main.async {
                     self?.enabledNewsletters = Set(enabled)
@@ -65,39 +74,60 @@ class SettingsViewModel: ObservableObject {
     }
 
     private func seedSettings(userId: String) {
-        let data: [String: Any] = ["enabledNewsletters": Newsletter.allSenderEmails]
+        let allIds = newsletterStore?.newsletters.map { $0.id } ?? []
+        let data: [String: Any] = ["enabledNewsletters": allIds]
         db.collection("users").document(userId)
             .collection("settings").document("preferences")
             .setData(data)
     }
 
-    func toggle(_ newsletter: Newsletter) {
+    /// Detects legacy email-based prefs (containing @) and converts to sender IDs.
+    /// Returns true if migration was performed (caller should skip normal assignment).
+    private func migrateEmailsToSenderIds(_ data: [String: Any]) -> Bool {
+        guard let enabled = data["enabledNewsletters"] as? [String],
+              enabled.contains(where: { $0.contains("@") }),
+              let store = newsletterStore else { return false }
+
+        let migratedEnabled: Set<String> = Set(store.newsletters.filter { nl in
+            nl.emails.contains(where: { email in enabled.contains(email) })
+        }.map { $0.id })
+
+        let notifications = data["notificationNewsletters"] as? [String] ?? []
+        let migratedNotifications: Set<String> = Set(store.newsletters.filter { nl in
+            nl.emails.contains(where: { email in notifications.contains(email) })
+        }.map { $0.id })
+
+        enabledNewsletters = migratedEnabled
+        notificationNewsletters = migratedNotifications
+        saveToFirestore()
+        return true
+    }
+
+    func toggle(_ newsletter: NewsletterInfo) {
         if isEnabled(newsletter) {
-            newsletter.senderEmails.forEach { enabledNewsletters.remove($0) }
-            // Auto-disable notifications when newsletter is turned off
-            newsletter.senderEmails.forEach { notificationNewsletters.remove($0) }
+            enabledNewsletters.remove(newsletter.id)
+            notificationNewsletters.remove(newsletter.id)
         } else {
-            newsletter.senderEmails.forEach { enabledNewsletters.insert($0) }
+            enabledNewsletters.insert(newsletter.id)
         }
         saveToFirestore()
     }
 
-    func isEnabled(_ newsletter: Newsletter) -> Bool {
-        newsletter.senderEmails.contains { enabledNewsletters.contains($0) }
+    func isEnabled(_ newsletter: NewsletterInfo) -> Bool {
+        enabledNewsletters.contains(newsletter.id)
     }
 
     /// Check if a newsletter metadata item should be shown based on its sender
     func shouldShow(_ metadata: NewsletterMetadata) -> Bool {
-        // Extract email from "Name <email@domain>" or use full string
-        let sender = metadata.sender.lowercased()
-        return enabledNewsletters.contains { sender.contains($0.lowercased()) }
+        guard let nl = newsletterStore?.from(sender: metadata.sender) else { return false }
+        return enabledNewsletters.contains(nl.id)
     }
 
     /// Writes the full list of all sender emails to Firestore so AppsScript can read it.
-    /// Called on launch so the list stays in sync with the Newsletter enum.
     func syncSenderFilters() {
+        guard let store = newsletterStore else { return }
         let data: [String: Any] = [
-            "senderEmails": Newsletter.allSenderEmails
+            "senderEmails": store.allSenderEmails
         ]
 
         db.collection("Settings").document("senderFilters").setData(data) { error in
@@ -107,15 +137,15 @@ class SettingsViewModel: ObservableObject {
         }
     }
 
-    func isNotificationEnabled(_ newsletter: Newsletter) -> Bool {
-        newsletter.senderEmails.contains { notificationNewsletters.contains($0) }
+    func isNotificationEnabled(_ newsletter: NewsletterInfo) -> Bool {
+        notificationNewsletters.contains(newsletter.id)
     }
 
-    func toggleNotification(_ newsletter: Newsletter) {
+    func toggleNotification(_ newsletter: NewsletterInfo) {
         if isNotificationEnabled(newsletter) {
-            newsletter.senderEmails.forEach { notificationNewsletters.remove($0) }
+            notificationNewsletters.remove(newsletter.id)
         } else {
-            newsletter.senderEmails.forEach { notificationNewsletters.insert($0) }
+            notificationNewsletters.insert(newsletter.id)
         }
         saveToFirestore()
     }

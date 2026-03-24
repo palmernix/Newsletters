@@ -15,12 +15,22 @@ import FirebaseAuth
 struct DigestSource: Codable {
     let newsletterId: String
     let displayName: String
+    let senderId: String?
+    let sectionIndex: Int?
+}
+
+struct StoryImage: Codable {
+    let url: String
+    let newsletterId: String
 }
 
 struct DigestItem: Codable {
     let headline: String
     let description: String
     let sources: [DigestSource]
+    let storyId: String?
+    let magnitude: Double?
+    let images: [StoryImage]?
 }
 
 struct DigestSection: Codable {
@@ -33,6 +43,7 @@ struct DigestDocument {
     let newsletterCount: Int
     let newsletterIds: [String]
     let sections: [DigestSection]
+    let topStories: [DigestItem]?
 }
 
 enum EmptyReason {
@@ -57,13 +68,16 @@ class DigestViewModel: ObservableObject {
     private var db = Firestore.firestore()
     private var functions = Functions.functions()
 
+    /// Reference to the newsletter store, set by MainView after creation.
+    var newsletterStore: NewsletterStore?
+
     func checkAndGenerate(
         todayNewsletters: [NewsletterMetadata],
-        enabledEmails: Set<String>
+        enabledSenders: Set<String>
     ) {
         // If already loaded, just check whether new newsletters have arrived
         if case .loaded(let current) = state {
-            refreshAvailable = hasNewNewsletters(storedIds: current.newsletterIds, todayNewsletters: todayNewsletters, enabledEmails: enabledEmails)
+            refreshAvailable = hasNewNewsletters(storedIds: current.newsletterIds, todayNewsletters: todayNewsletters, enabledSenders: enabledSenders)
             return
         }
         // Don't interrupt an in-progress generation
@@ -80,8 +94,8 @@ class DigestViewModel: ObservableObject {
         }
 
         let anyEnabled = todayItems.contains { meta in
-            let sender = meta.sender.lowercased()
-            return enabledEmails.contains { sender.contains($0.lowercased()) }
+            guard let nl = newsletterStore?.from(sender: meta.sender) else { return false }
+            return enabledSenders.contains(nl.id)
         }
         if !anyEnabled {
             state = .empty(.noneEnabled)
@@ -100,7 +114,7 @@ class DigestViewModel: ObservableObject {
             if let data = snapshot?.data(), let cached = DigestDocument(from: data) {
                 DispatchQueue.main.async {
                     self.state = .loaded(cached)
-                    self.refreshAvailable = self.hasNewNewsletters(storedIds: cached.newsletterIds, todayNewsletters: todayItems, enabledEmails: enabledEmails)
+                    self.refreshAvailable = self.hasNewNewsletters(storedIds: cached.newsletterIds, todayNewsletters: todayItems, enabledSenders: enabledSenders)
                 }
                 return
             }
@@ -110,7 +124,7 @@ class DigestViewModel: ObservableObject {
         }
     }
 
-    func refresh(todayNewsletters: [NewsletterMetadata], enabledEmails: Set<String>) {
+    func refresh(todayNewsletters: [NewsletterMetadata], enabledSenders: Set<String>) {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         let staleDigest: DigestDocument? = { if case .loaded(let d) = state { return d }; return nil }()
         refreshAvailable = false
@@ -121,13 +135,13 @@ class DigestViewModel: ObservableObject {
     private func hasNewNewsletters(
         storedIds: [String],
         todayNewsletters: [NewsletterMetadata],
-        enabledEmails: Set<String>
+        enabledSenders: Set<String>
     ) -> Bool {
         let currentIds = Set(todayNewsletters
             .filter { Calendar.current.isDateInToday($0.newsletterDate) }
             .filter { meta in
-                let sender = meta.sender.lowercased()
-                return enabledEmails.contains { sender.contains($0.lowercased()) }
+                guard let nl = newsletterStore?.from(sender: meta.sender) else { return false }
+                return enabledSenders.contains(nl.id)
             }
             .compactMap { $0.id })
         return !currentIds.isSubset(of: Set(storedIds))
@@ -155,6 +169,38 @@ class DigestViewModel: ObservableObject {
 
 // MARK: - DigestDocument init from [String: Any]
 
+private func parseDigestItem(from itemDict: [String: Any]) -> DigestItem? {
+    guard let headline = itemDict["headline"] as? String,
+          let description = itemDict["description"] as? String,
+          let sourcesData = itemDict["sources"] as? [[String: Any]] else { return nil }
+
+    let sources: [DigestSource] = sourcesData.compactMap { srcDict in
+        guard let id = srcDict["newsletterId"] as? String,
+              let name = srcDict["displayName"] as? String else { return nil }
+        return DigestSource(
+            newsletterId: id,
+            displayName: name,
+            senderId: srcDict["senderId"] as? String,
+            sectionIndex: srcDict["sectionIndex"] as? Int
+        )
+    }
+
+    let images: [StoryImage]? = (itemDict["images"] as? [[String: Any]])?.compactMap { imgDict in
+        guard let url = imgDict["url"] as? String,
+              let nlId = imgDict["newsletterId"] as? String else { return nil }
+        return StoryImage(url: url, newsletterId: nlId)
+    }
+
+    return DigestItem(
+        headline: headline,
+        description: description,
+        sources: sources,
+        storyId: itemDict["storyId"] as? String,
+        magnitude: itemDict["magnitude"] as? Double,
+        images: images
+    )
+}
+
 private extension DigestDocument {
     init?(from data: [String: Any]) {
         guard let sectionsData = data["sections"] as? [[String: Any]] else { return nil }
@@ -171,24 +217,19 @@ private extension DigestDocument {
         let sections: [DigestSection] = sectionsData.compactMap { sectionDict in
             guard let title = sectionDict["title"] as? String,
                   let itemsData = sectionDict["items"] as? [[String: Any]] else { return nil }
-            let items: [DigestItem] = itemsData.compactMap { itemDict in
-                guard let headline = itemDict["headline"] as? String,
-                      let description = itemDict["description"] as? String,
-                      let sourcesData = itemDict["sources"] as? [[String: Any]] else { return nil }
-                let sources: [DigestSource] = sourcesData.compactMap { srcDict in
-                    guard let id = srcDict["newsletterId"] as? String,
-                          let name = srcDict["displayName"] as? String else { return nil }
-                    return DigestSource(newsletterId: id, displayName: name)
-                }
-                return DigestItem(headline: headline, description: description, sources: sources)
-            }
+            let items: [DigestItem] = itemsData.compactMap { parseDigestItem(from: $0) }
             return DigestSection(title: title, items: items)
+        }
+
+        let topStories: [DigestItem]? = (data["topStories"] as? [[String: Any]])?.compactMap {
+            parseDigestItem(from: $0)
         }
 
         self.generatedAt = generatedAt
         self.newsletterCount = data["newsletterCount"] as? Int ?? 0
         self.newsletterIds = data["newsletterIds"] as? [String] ?? []
         self.sections = sections
+        self.topStories = topStories
     }
 }
 

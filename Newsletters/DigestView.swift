@@ -12,6 +12,7 @@ struct DigestView: View {
     @StateObject private var digestVM = DigestViewModel()
     @ObservedObject var metadataViewModel: NewsletterMetadataViewModel
     @ObservedObject var settingsViewModel: SettingsViewModel
+    var newsletterStore: NewsletterStore? = nil
 
     // Navigation state (mirrors TodayView/HistoricalView pattern)
     @State private var navigatingTo: NewsletterMetadata? = nil
@@ -52,7 +53,10 @@ struct DigestView: View {
 
                 NavigationLink(
                     destination: selectedStory.map { story in
-                        StoryDetailView(item: story) {
+                        StoryDetailView(
+                            item: story,
+                            allMetadata: metadataViewModel.newsletters
+                        ) {
                             isViewingStory = false
                         }
                     },
@@ -68,7 +72,7 @@ struct DigestView: View {
                             withAnimation { showRefreshBanner = false }
                             digestVM.refresh(
                                 todayNewsletters: metadataViewModel.newsletters,
-                                enabledEmails: settingsViewModel.enabledNewsletters
+                                enabledSenders: settingsViewModel.enabledNewsletters
                             )
                         }
                 }
@@ -76,15 +80,16 @@ struct DigestView: View {
             .navigationBarHidden(true)
         }
         .onAppear {
+            digestVM.newsletterStore = newsletterStore
             digestVM.checkAndGenerate(
                 todayNewsletters: metadataViewModel.newsletters,
-                enabledEmails: settingsViewModel.enabledNewsletters
+                enabledSenders: settingsViewModel.enabledNewsletters
             )
             authListenerHandle = Auth.auth().addStateDidChangeListener { _, user in
                 guard user != nil else { return }
                 digestVM.checkAndGenerate(
                     todayNewsletters: metadataViewModel.newsletters,
-                    enabledEmails: settingsViewModel.enabledNewsletters
+                    enabledSenders: settingsViewModel.enabledNewsletters
                 )
             }
         }
@@ -95,7 +100,7 @@ struct DigestView: View {
         .onChange(of: metadataViewModel.newsletters.count) { _ in
             digestVM.checkAndGenerate(
                 todayNewsletters: metadataViewModel.newsletters,
-                enabledEmails: settingsViewModel.enabledNewsletters
+                enabledSenders: settingsViewModel.enabledNewsletters
             )
         }
         .onChange(of: digestVM.refreshAvailable) { available in
@@ -127,11 +132,36 @@ struct DigestView: View {
             VStack(alignment: .leading, spacing: 0) {
                 headerView
                 Divider().padding(.horizontal, 20)
+
+                // Top Stories (always expanded, no accordion)
+                if let topStories = digest.topStories, !topStories.isEmpty {
+                    topStoriesSection(topStories)
+                    Divider().padding(.horizontal, 20)
+                }
+
                 ForEach(sections, id: \.title) { section in
                     sectionView(section)
                     Divider().padding(.horizontal, 20)
                 }
             }
+        }
+    }
+
+    private func topStoriesSection(_ stories: [DigestItem]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Top Stories")
+                .font(.custom("Georgia-Bold", size: 26))
+                .foregroundColor(.primary)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
+
+            VStack(spacing: 10) {
+                ForEach(stories, id: \.headline) { item in
+                    itemCard(item)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.bottom, 16)
         }
     }
 
@@ -190,8 +220,9 @@ struct DigestView: View {
             .buttonStyle(.plain)
 
             if isExpanded {
+                let sortedItems = section.items.sorted { ($0.magnitude ?? 0) > ($1.magnitude ?? 0) }
                 VStack(spacing: 10) {
-                    ForEach(section.items, id: \.headline) { item in
+                    ForEach(sortedItems, id: \.headline) { item in
                         itemCard(item)
                     }
                 }
@@ -208,9 +239,22 @@ struct DigestView: View {
             isNavigating = true
         } label: {
             HStack(alignment: .top, spacing: 12) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(.systemGray5))
+                if let imageUrl = item.images?.first?.url, let url = URL(string: imageUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().aspectRatio(contentMode: .fill)
+                        default:
+                            Color(.systemGray5)
+                        }
+                    }
                     .frame(width: 100, height: 100)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(.systemGray5))
+                        .frame(width: 100, height: 100)
+                }
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(item.headline)
@@ -296,7 +340,7 @@ struct DigestView: View {
                 Button("Retry") {
                     digestVM.checkAndGenerate(
                         todayNewsletters: metadataViewModel.newsletters,
-                        enabledEmails: settingsViewModel.enabledNewsletters
+                        enabledSenders: settingsViewModel.enabledNewsletters
                     )
                 }
                 .buttonStyle(.borderedProminent)
