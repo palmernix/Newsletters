@@ -32,7 +32,14 @@ struct DigestView: View {
                 case .idle:
                     EmptyView()
                 case .loading:
-                    ProgressView("Generating digest…")
+                    VStack(alignment: .leading, spacing: 0) {
+                        headerView
+                        Divider().padding(.horizontal, 20)
+                        Spacer()
+                        ProgressView("Generating digest…")
+                            .frame(maxWidth: .infinity)
+                        Spacer()
+                    }
                 case .loaded(let digest):
                     if digest.sections.isEmpty && (digest.topStories ?? []).isEmpty {
                         emptyState(.noNewslettersToday)
