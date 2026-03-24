@@ -62,6 +62,16 @@ struct SettingsView: View {
                         }
                         .padding(.vertical, 4)
                     }
+                    NavigationLink(destination: NotificationsMenuView(viewModel: viewModel)) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Notifications")
+                                .font(.body)
+                            Text("Manage notifications for your active newsletters")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
                 } header: {
                     Text("Newsletters")
                         .font(.custom("Georgia-Bold", size: 22))

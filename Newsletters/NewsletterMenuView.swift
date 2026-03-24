@@ -16,7 +16,7 @@ struct NewsletterMenuView: View {
                 let newsletters = Newsletter.newsletters(for: group)
                 Section(header: Text(group.rawValue)) {
                     ForEach(newsletters) { newsletter in
-                        toggleRow(for: newsletter)
+                        newsletterRow(for: newsletter)
                     }
                 }
             }
@@ -25,7 +25,7 @@ struct NewsletterMenuView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func toggleRow(for newsletter: Newsletter) -> some View {
+    private func newsletterRow(for newsletter: Newsletter) -> some View {
         Toggle(isOn: Binding(
             get: { viewModel.isEnabled(newsletter) },
             set: { _ in viewModel.toggle(newsletter) }

@@ -1,7 +1,8 @@
-from firebase_functions import https_fn
-from firebase_admin import initialize_app, firestore
+from firebase_functions import https_fn, firestore_fn
+from firebase_admin import initialize_app, firestore, messaging
 from google import genai
 from google.genai import types
+from google.cloud.firestore_v1 import FieldFilter
 import html2text
 import json
 from datetime import datetime, timezone, timedelta
@@ -200,3 +201,58 @@ def _write_empty_and_return(db, uid: str, today: str, now_iso: str) -> dict:
        .collection("digests").document(today)
        .set(doc_data))
     return doc_data
+
+
+def _extract_email(sender: str) -> str:
+    """Extract email address from 'Name <email@domain>' format."""
+    if "<" in sender and ">" in sender:
+        return sender.split("<")[1].rstrip(">").strip().lower()
+    if "@" in sender:
+        return sender.strip().lower()
+    return ""
+
+
+@firestore_fn.on_document_created(
+    document="NewsletterMetadata/{docId}",
+    region="us-central1"
+)
+def notifyNewsletter(
+    event: firestore_fn.Event[firestore_fn.DocumentSnapshot | None]
+) -> None:
+    if event.data is None:
+        return
+
+    data = event.data.to_dict()
+    sender = data.get("sender", "")
+    subject = data.get("subject", "New newsletter")
+    display_name = extract_display_name(sender)
+    sender_email = _extract_email(sender)
+
+    if not sender_email:
+        return
+
+    db = firestore.client()
+
+    # Find users with notifications enabled for this sender email
+    try:
+        prefs_query = (db.collection_group("settings")
+                         .where(filter=FieldFilter("notificationNewsletters", "array-contains", sender_email)))
+        docs = list(prefs_query.stream())
+    except Exception as e:
+        print(f"Notification query failed: {e}")
+        return
+
+    for doc in docs:
+        token = doc.to_dict().get("fcmToken")
+        if not token:
+            continue
+        try:
+            messaging.send(messaging.Message(
+                notification=messaging.Notification(
+                    title=display_name,
+                    body=subject
+                ),
+                token=token
+            ))
+        except Exception as e:
+            print(f"FCM send error for token {token[:10]}...: {e}")

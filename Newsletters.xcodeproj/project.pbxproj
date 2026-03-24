@@ -10,6 +10,7 @@
 		473CCDAF2F6D94D100805BDB /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 473CCDAE2F6D94D100805BDB /* FirebaseFunctions */; };
 		4780C4D02F6DC764004DC7DC /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 4780C4CF2F6DC764004DC7DC /* GoogleSignIn */; };
 		4780C4D22F6DC764004DC7DC /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 4780C4D12F6DC764004DC7DC /* GoogleSignInSwift */; };
+		4780C4D82F6DEEC9004DC7DC /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 4780C4D72F6DEEC9004DC7DC /* FirebaseMessaging */; };
 		534A21BA2D9F3A930076E6C9 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 534A21B92D9F3A930076E6C9 /* FirebaseCore */; };
 		534A21BC2D9F3A930076E6C9 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 534A21BB2D9F3A930076E6C9 /* FirebaseFirestore */; };
 		534A21BE2D9F41240076E6C9 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 534A21BD2D9F41240076E6C9 /* FirebaseAuth */; };
@@ -75,6 +76,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4780C4D82F6DEEC9004DC7DC /* FirebaseMessaging in Frameworks */,
 				534A21C12D9F41430076E6C9 /* KeychainAccess in Frameworks */,
 				534A21BA2D9F3A930076E6C9 /* FirebaseCore in Frameworks */,
 				4780C4D22F6DC764004DC7DC /* GoogleSignInSwift in Frameworks */,
@@ -157,6 +159,7 @@
 				473CCDAE2F6D94D100805BDB /* FirebaseFunctions */,
 				4780C4CF2F6DC764004DC7DC /* GoogleSignIn */,
 				4780C4D12F6DC764004DC7DC /* GoogleSignInSwift */,
+				4780C4D72F6DEEC9004DC7DC /* FirebaseMessaging */,
 			);
 			productName = Newsletters;
 			productReference = 53503B1D2D9EF82100EF5B9E /* Synpsis.app */;
@@ -446,6 +449,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Newsletters/Newsletters.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = J6T8K893LG;
@@ -476,6 +480,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Newsletters/Newsletters.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = J6T8K893LG;
@@ -664,6 +669,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4780C4CE2F6DC764004DC7DC /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignInSwift;
+		};
+		4780C4D72F6DEEC9004DC7DC /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 534A21B82D9F3A700076E6C9 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
 		};
 		534A21B92D9F3A930076E6C9 /* FirebaseCore */ = {
 			isa = XCSwiftPackageProductDependency;

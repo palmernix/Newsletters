@@ -11,6 +11,7 @@ import FirebaseAuth
 
 class SettingsViewModel: ObservableObject {
     @Published var enabledNewsletters: Set<String> = Set(Newsletter.allSenderEmails)
+    @Published var notificationNewsletters: Set<String> = []
     @Published var sectionOrder: [String] = UserDefaults.standard.stringArray(forKey: "digestSectionOrder") ?? []
 
     private static let defaultSections = [
@@ -55,7 +56,11 @@ class SettingsViewModel: ObservableObject {
                     self?.seedSettings(userId: userId)
                     return
                 }
-                DispatchQueue.main.async { self?.enabledNewsletters = Set(enabled) }
+                let notifications = data["notificationNewsletters"] as? [String] ?? []
+                DispatchQueue.main.async {
+                    self?.enabledNewsletters = Set(enabled)
+                    self?.notificationNewsletters = Set(notifications)
+                }
             }
     }
 
@@ -69,6 +74,8 @@ class SettingsViewModel: ObservableObject {
     func toggle(_ newsletter: Newsletter) {
         if isEnabled(newsletter) {
             newsletter.senderEmails.forEach { enabledNewsletters.remove($0) }
+            // Auto-disable notifications when newsletter is turned off
+            newsletter.senderEmails.forEach { notificationNewsletters.remove($0) }
         } else {
             newsletter.senderEmails.forEach { enabledNewsletters.insert($0) }
         }
@@ -100,12 +107,28 @@ class SettingsViewModel: ObservableObject {
         }
     }
 
+    func isNotificationEnabled(_ newsletter: Newsletter) -> Bool {
+        newsletter.senderEmails.contains { notificationNewsletters.contains($0) }
+    }
+
+    func toggleNotification(_ newsletter: Newsletter) {
+        if isNotificationEnabled(newsletter) {
+            newsletter.senderEmails.forEach { notificationNewsletters.remove($0) }
+        } else {
+            newsletter.senderEmails.forEach { notificationNewsletters.insert($0) }
+        }
+        saveToFirestore()
+    }
+
     private func saveToFirestore() {
         guard let userId else { return }
-        let data: [String: Any] = ["enabledNewsletters": Array(enabledNewsletters)]
+        let data: [String: Any] = [
+            "enabledNewsletters": Array(enabledNewsletters),
+            "notificationNewsletters": Array(notificationNewsletters)
+        ]
         db.collection("users").document(userId)
             .collection("settings").document("preferences")
-            .setData(data) { error in
+            .setData(data, merge: true) { error in
                 if let error = error { print("Error saving settings: \(error)") }
             }
     }

@@ -13,6 +13,7 @@ import KeychainAccess
 
 @main
 struct NewslettersApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var needsLogin: Bool = false
 
     init() {
