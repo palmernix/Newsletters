@@ -134,11 +134,11 @@ def generateDigest(req: https_fn.CallableRequest) -> dict:
     prefs_doc = prefs_ref.get()
 
     if not prefs_doc.exists:
-        return _write_empty_and_return(db, uid, today, now_iso)
+        return _empty_digest(now_iso)
 
     enabled_senders = set(prefs_doc.to_dict().get("enabledNewsletters", []))
     if not enabled_senders:
-        return _write_empty_and_return(db, uid, today, now_iso)
+        return _empty_digest(now_iso)
 
     # Step 2: Read today's NewsletterMetadata, filter by enabled senders
     today_start = datetime.now(timezone.utc).replace(
@@ -164,7 +164,7 @@ def generateDigest(req: https_fn.CallableRequest) -> dict:
             })
 
     if not newsletters:
-        return _write_empty_and_return(db, uid, today, now_iso)
+        return _empty_digest(now_iso)
 
     # Step 3: Assemble digest from pre-extracted stories
     stories_digest = _assemble_digest_from_stories(
@@ -172,11 +172,7 @@ def generateDigest(req: https_fn.CallableRequest) -> dict:
     )
     if not stories_digest:
         print(f"generateDigest: no stories found for {today} — this is unexpected")
-        return _write_empty_and_return(db, uid, today, now_iso)
-
-    (db.collection("users").document(uid)
-       .collection("digests").document(today)
-       .set(stories_digest))
+        return _empty_digest(now_iso)
 
     return stories_digest
 
@@ -256,12 +252,8 @@ def _story_to_digest_item(story: dict) -> dict:
     }
 
 
-def _write_empty_and_return(db, uid: str, today: str, now_iso: str) -> dict:
-    doc_data = {"generatedAt": now_iso, "newsletterCount": 0, "newsletterIds": [], "sections": []}
-    (db.collection("users").document(uid)
-       .collection("digests").document(today)
-       .set(doc_data))
-    return doc_data
+def _empty_digest(now_iso: str) -> dict:
+    return {"generatedAt": now_iso, "newsletterCount": 0, "newsletterIds": [], "sections": []}
 
 
 def _extract_email(sender: str) -> str:

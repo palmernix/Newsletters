@@ -8,7 +8,6 @@
 import SwiftUI
 import FirebaseFirestore
 import FirebaseFunctions
-import FirebaseAuth
 
 // MARK: - Data Models
 
@@ -63,27 +62,18 @@ enum DigestState {
 
 class DigestViewModel: ObservableObject {
     @Published var state: DigestState = .idle
-    @Published var refreshAvailable = false
 
-    private var db = Firestore.firestore()
     private var functions = Functions.functions()
 
     /// Reference to the newsletter store, set by MainView after creation.
     var newsletterStore: NewsletterStore?
 
-    func checkAndGenerate(
+    func loadDigest(
         todayNewsletters: [NewsletterMetadata],
         enabledSenders: Set<String>
     ) {
-        // If already loaded, just check whether new newsletters have arrived
-        if case .loaded(let current) = state {
-            refreshAvailable = hasNewNewsletters(storedIds: current.newsletterIds, todayNewsletters: todayNewsletters, enabledSenders: enabledSenders)
-            return
-        }
         // Don't interrupt an in-progress generation
         if case .loading = state { return }
-
-        guard let userId = Auth.auth().currentUser?.uid else { return }
 
         let todayItems = todayNewsletters.filter {
             Calendar.current.isDateInToday($0.newsletterDate)
@@ -102,64 +92,23 @@ class DigestViewModel: ObservableObject {
             return
         }
 
-        let today = ISO8601DateFormatter.localDateString()
-        let digestRef = db.collection("users").document(userId)
-            .collection("digests").document(today)
-
         state = .loading
-
-        digestRef.getDocument { [weak self] snapshot, error in
-            guard let self else { return }
-
-            if let data = snapshot?.data(), let cached = DigestDocument(from: data) {
-                DispatchQueue.main.async {
-                    self.state = .loaded(cached)
-                    self.refreshAvailable = self.hasNewNewsletters(storedIds: cached.newsletterIds, todayNewsletters: todayItems, enabledSenders: enabledSenders)
-                }
-                return
-            }
-
-            // No cache — generate automatically
-            self.generate(userId: userId, staleDigest: nil)
-        }
+        generate()
     }
 
-    func refresh(todayNewsletters: [NewsletterMetadata], enabledSenders: Set<String>) {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
-        let staleDigest: DigestDocument? = { if case .loaded(let d) = state { return d }; return nil }()
-        refreshAvailable = false
-        state = .loading
-        generate(userId: userId, staleDigest: staleDigest)
-    }
-
-    private func hasNewNewsletters(
-        storedIds: [String],
-        todayNewsletters: [NewsletterMetadata],
-        enabledSenders: Set<String>
-    ) -> Bool {
-        let currentIds = Set(todayNewsletters
-            .filter { Calendar.current.isDateInToday($0.newsletterDate) }
-            .filter { meta in
-                guard let nl = newsletterStore?.from(sender: meta.sender) else { return false }
-                return enabledSenders.contains(nl.id)
-            }
-            .compactMap { $0.id })
-        return !currentIds.isSubset(of: Set(storedIds))
-    }
-
-    private func generate(userId: String, staleDigest: DigestDocument?) {
+    private func generate() {
         let callable = functions.httpsCallable("generateDigest")
         callable.timeoutInterval = 300
         callable.call([:]) { [weak self] result, error in
             guard let self else { return }
             if let error = error {
                 print("Digest generation error: \(error)")
-                DispatchQueue.main.async { self.state = .error(staleDigest: staleDigest) }
+                DispatchQueue.main.async { self.state = .error(staleDigest: nil) }
                 return
             }
             guard let data = result?.data as? [String: Any],
                   let digest = DigestDocument(from: data) else {
-                DispatchQueue.main.async { self.state = .error(staleDigest: staleDigest) }
+                DispatchQueue.main.async { self.state = .error(staleDigest: nil) }
                 return
             }
             DispatchQueue.main.async { self.state = .loaded(digest) }
@@ -230,13 +179,5 @@ private extension DigestDocument {
         self.newsletterIds = data["newsletterIds"] as? [String] ?? []
         self.sections = sections
         self.topStories = topStories
-    }
-}
-
-private extension ISO8601DateFormatter {
-    static func localDateString() -> String {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withFullDate]
-        return f.string(from: Date())
     }
 }

@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import FirebaseAuth
 
 struct DigestView: View {
     @StateObject private var digestVM = DigestViewModel()
@@ -20,9 +19,7 @@ struct DigestView: View {
     @State private var isViewingNewsletter = false
     @State private var isViewingStory = false
     @State private var selectedStory: DigestItem? = nil
-    @State private var showRefreshBanner = false
     @State private var expandedSection: String? = nil
-    @State private var authListenerHandle: AuthStateDidChangeListenerHandle? = nil
 
     private let ivoryBg = Color(red: 0.953, green: 0.951, blue: 0.933)
 
@@ -64,54 +61,21 @@ struct DigestView: View {
                 ) { EmptyView() }
                 .opacity(0)
 
-                // New-newsletters toast
-                if showRefreshBanner {
-                    RefreshToast()
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                        .onTapGesture {
-                            withAnimation { showRefreshBanner = false }
-                            digestVM.refresh(
-                                todayNewsletters: metadataViewModel.newsletters,
-                                enabledSenders: settingsViewModel.enabledNewsletters
-                            )
-                        }
-                }
             }
             .navigationBarHidden(true)
         }
         .onAppear {
             digestVM.newsletterStore = newsletterStore
-            digestVM.checkAndGenerate(
+            digestVM.loadDigest(
                 todayNewsletters: metadataViewModel.newsletters,
                 enabledSenders: settingsViewModel.enabledNewsletters
             )
-            authListenerHandle = Auth.auth().addStateDidChangeListener { _, user in
-                guard user != nil else { return }
-                digestVM.checkAndGenerate(
-                    todayNewsletters: metadataViewModel.newsletters,
-                    enabledSenders: settingsViewModel.enabledNewsletters
-                )
-            }
-        }
-        .onDisappear {
-            authListenerHandle.map { Auth.auth().removeStateDidChangeListener($0) }
-            authListenerHandle = nil
         }
         .onChange(of: metadataViewModel.newsletters.count) { _ in
-            digestVM.checkAndGenerate(
+            digestVM.loadDigest(
                 todayNewsletters: metadataViewModel.newsletters,
                 enabledSenders: settingsViewModel.enabledNewsletters
             )
-        }
-        .onChange(of: digestVM.refreshAvailable) { available in
-            if available {
-                withAnimation { showRefreshBanner = true }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                    withAnimation { showRefreshBanner = false }
-                }
-            } else {
-                withAnimation { showRefreshBanner = false }
-            }
         }
         .onChange(of: isViewingNewsletter) { val in
             if !val { isNavigating = false }
@@ -338,7 +302,7 @@ struct DigestView: View {
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                 Button("Retry") {
-                    digestVM.checkAndGenerate(
+                    digestVM.loadDigest(
                         todayNewsletters: metadataViewModel.newsletters,
                         enabledSenders: settingsViewModel.enabledNewsletters
                     )
@@ -351,26 +315,6 @@ struct DigestView: View {
 }
 
 // MARK: - Small helpers
-
-private struct RefreshToast: View {
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "envelope.badge")
-                .foregroundColor(.accentColor)
-            Text("New newsletters available — tap to refresh")
-                .font(.subheadline)
-                .foregroundColor(.primary)
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(.regularMaterial)
-        .cornerRadius(12)
-        .shadow(radius: 4)
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-    }
-}
 
 private struct Banner: View {
     let message: String
