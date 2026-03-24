@@ -11,6 +11,7 @@ import GoogleSignIn
 
 struct SettingsView: View {
     @ObservedObject var viewModel: SettingsViewModel
+    @ObservedObject var newsletterStore: NewsletterStore
     @Binding var needsLogin: Bool
 
     private let ivoryBg = Color(red: 0.953, green: 0.951, blue: 0.933)
@@ -52,7 +53,7 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    NavigationLink(destination: NewsletterMenuView(viewModel: viewModel)) {
+                    NavigationLink(destination: NewsletterMenuView(viewModel: viewModel, newsletterStore: newsletterStore)) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Newsletter Menu")
                                 .font(.body)
@@ -62,7 +63,7 @@ struct SettingsView: View {
                         }
                         .padding(.vertical, 4)
                     }
-                    NavigationLink(destination: NotificationsMenuView(viewModel: viewModel)) {
+                    NavigationLink(destination: NotificationsMenuView(viewModel: viewModel, newsletterStore: newsletterStore)) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Notifications")
                                 .font(.body)

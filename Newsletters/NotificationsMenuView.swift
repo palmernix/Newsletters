@@ -9,9 +9,10 @@ import SwiftUI
 
 struct NotificationsMenuView: View {
     @ObservedObject var viewModel: SettingsViewModel
+    @ObservedObject var newsletterStore: NewsletterStore
 
-    private var enabledNewsletters: [Newsletter] {
-        Newsletter.allCases.filter { viewModel.isEnabled($0) }
+    private var enabledNewsletters: [NewsletterInfo] {
+        newsletterStore.newsletters.filter { viewModel.isEnabled($0) }
     }
 
     var body: some View {

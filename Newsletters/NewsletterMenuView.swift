@@ -9,12 +9,13 @@ import SwiftUI
 
 struct NewsletterMenuView: View {
     @ObservedObject var viewModel: SettingsViewModel
+    @ObservedObject var newsletterStore: NewsletterStore
 
     var body: some View {
         List {
-            ForEach(NewsletterGroup.allCases, id: \.rawValue) { group in
-                let newsletters = Newsletter.newsletters(for: group)
-                Section(header: Text(group.rawValue)) {
+            ForEach(newsletterStore.groups, id: \.self) { group in
+                let newsletters = newsletterStore.newsletters(for: group)
+                Section(header: Text(group)) {
                     ForEach(newsletters) { newsletter in
                         newsletterRow(for: newsletter)
                     }
@@ -25,7 +26,7 @@ struct NewsletterMenuView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func newsletterRow(for newsletter: Newsletter) -> some View {
+    private func newsletterRow(for newsletter: NewsletterInfo) -> some View {
         Toggle(isOn: Binding(
             get: { viewModel.isEnabled(newsletter) },
             set: { _ in viewModel.toggle(newsletter) }
