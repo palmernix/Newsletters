@@ -16,6 +16,9 @@ struct DigestView: View {
     // Navigation state (mirrors TodayView/HistoricalView pattern)
     @State private var navigatingTo: NewsletterMetadata? = nil
     @Binding var isNavigating: Bool
+    @State private var isViewingNewsletter = false
+    @State private var isViewingStory = false
+    @State private var selectedStory: DigestItem? = nil
     @State private var showRefreshBanner = false
     @State private var expandedSection: String? = nil
     @State private var authListenerHandle: AuthStateDidChangeListenerHandle? = nil
@@ -40,10 +43,20 @@ struct DigestView: View {
                     errorState(stale)
                 }
 
-                // Invisible navigation link (existing app pattern)
+                // Invisible navigation links
                 NavigationLink(
                     destination: navigatingTo.map { NewsletterReaderView(newsletter: $0) },
-                    isActive: $isNavigating
+                    isActive: $isViewingNewsletter
+                ) { EmptyView() }
+                .opacity(0)
+
+                NavigationLink(
+                    destination: selectedStory.map { story in
+                        StoryDetailView(item: story) {
+                            isViewingStory = false
+                        }
+                    },
+                    isActive: $isViewingStory
                 ) { EmptyView() }
                 .opacity(0)
 
@@ -93,6 +106,15 @@ struct DigestView: View {
                 }
             } else {
                 withAnimation { showRefreshBanner = false }
+            }
+        }
+        .onChange(of: isViewingNewsletter) { val in
+            if !val { isNavigating = false }
+        }
+        .onChange(of: isViewingStory) { val in
+            if !val {
+                selectedStory = nil
+                isNavigating = false
             }
         }
     }
@@ -180,34 +202,41 @@ struct DigestView: View {
     }
 
     private func itemCard(_ item: DigestItem) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(.systemGray5))
-                .frame(width: 100, height: 100)
+        Button {
+            selectedStory = item
+            isViewingStory = true
+            isNavigating = true
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(.systemGray5))
+                    .frame(width: 100, height: 100)
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text(item.headline)
-                    .font(.custom("Georgia-Bold", size: 16))
-                    .foregroundColor(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(item.headline)
+                        .font(.custom("Georgia-Bold", size: 16))
+                        .foregroundColor(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                Text(item.description)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(.secondary)
-                    .lineLimit(3)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text(item.description)
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(.secondary)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                Spacer(minLength: 6)
+                    Spacer(minLength: 6)
 
-                if let source = item.sources.first {
-                    sourceLabel(source)
+                    if let source = item.sources.first {
+                        sourceLabel(source)
+                    }
                 }
             }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white)
+            .cornerRadius(12)
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .cornerRadius(12)
+        .buttonStyle(.plain)
     }
 
     private func sourceLabel(_ source: DigestSource) -> some View {
@@ -215,6 +244,7 @@ struct DigestView: View {
             if let meta = metadataViewModel.newsletters
                 .first(where: { $0.id == source.newsletterId }) {
                 navigatingTo = meta
+                isViewingNewsletter = true
                 isNavigating = true
             }
         } label: {
