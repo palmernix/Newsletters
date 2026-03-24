@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 import FirebaseFirestore
 import FirebaseAuth
 
@@ -15,7 +16,11 @@ class SettingsViewModel: ObservableObject {
     @Published var sectionOrder: [String] = UserDefaults.standard.stringArray(forKey: "digestSectionOrder") ?? []
 
     /// Reference to the newsletter store, set by MainView after creation.
-    var newsletterStore: NewsletterStore?
+    /// When the store finishes loading, we notify observers so views re-evaluate shouldShow().
+    var newsletterStore: NewsletterStore? {
+        didSet { observeStore() }
+    }
+    private var storeCancellable: AnyCancellable?
 
     private static let defaultSections = [
         "Business & Finance", "Startups & Venture Capital", "Artificial Intelligence",
@@ -46,6 +51,12 @@ class SettingsViewModel: ObservableObject {
     private var db = Firestore.firestore()
     private var listener: ListenerRegistration?
     private var userId: String? { Auth.auth().currentUser?.uid }
+
+    private func observeStore() {
+        storeCancellable = newsletterStore?.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+    }
 
     func fetchSettings() {
         guard let userId else { return }
@@ -117,9 +128,11 @@ class SettingsViewModel: ObservableObject {
         enabledNewsletters.contains(newsletter.id)
     }
 
-    /// Check if a newsletter metadata item should be shown based on its sender
+    /// Check if a newsletter metadata item should be shown based on its sender.
+    /// Shows all newsletters while the store is still loading.
     func shouldShow(_ metadata: NewsletterMetadata) -> Bool {
-        guard let nl = newsletterStore?.from(sender: metadata.sender) else { return false }
+        guard let store = newsletterStore, store.isLoaded else { return true }
+        guard let nl = store.from(sender: metadata.sender) else { return false }
         return enabledNewsletters.contains(nl.id)
     }
 
