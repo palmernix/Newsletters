@@ -67,7 +67,13 @@ struct NewsletterReaderView: View {
                 }
             }
         }
-        .navigationBarHidden(true) // Hide the default navigation bar.
+        .navigationBarHidden(true)
+        .gesture(DragGesture().onEnded { gesture in
+            if gesture.translation.width > 80 && abs(gesture.translation.height) < 100 {
+                onDismiss?()
+                presentationMode.wrappedValue.dismiss()
+            }
+        })
         .onAppear {
             DispatchQueue.main.async {
                 // Use newsletter.id as the doc ID for querying the data.
