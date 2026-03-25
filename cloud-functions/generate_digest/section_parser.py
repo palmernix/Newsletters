@@ -36,7 +36,7 @@ def parse_sections(html_body: str) -> tuple[list[Section], str]:
 
     if not boundaries:
         # No boundaries found — treat entire body as one section
-        plain = _html_to_text(html_body)
+        plain = _html_to_text_with_images(html_body)
         anchor_tag = soup.new_tag("a", id="section-0")
         container.insert(0, anchor_tag)
         return [Section(index=0, html=html_body, plain_text=plain)], str(soup)
@@ -54,10 +54,10 @@ def parse_sections(html_body: str) -> tuple[list[Section], str]:
 
     anchored_html = str(soup)
 
-    # Now extract each section's HTML and plain text using the anchored HTML
+    # Now extract each section's HTML and plain text (with image markers) using the anchored HTML
     for i in range(len(boundaries)):
         section_html = _extract_section_html(anchored_html, i, len(boundaries))
-        plain = _html_to_text(section_html)
+        plain = _html_to_text_with_images(section_html)
         sections.append(Section(index=i, html=section_html, plain_text=plain))
 
     return sections, anchored_html
@@ -150,13 +150,49 @@ def _extract_section_html(anchored_html: str, section_index: int, total_sections
         return anchored_html[start_pos:]
 
 
-def _html_to_text(html: str) -> str:
-    """Convert HTML to plain text, stripping links and images."""
+def _is_substantive_image(img: Tag) -> bool:
+    """Check if an <img> tag is likely a real content image, not a tracker/logo."""
+    src = img.get("src", "")
+    if not src or not src.startswith("http"):
+        return False
+    # Filter out tiny images (tracking pixels, spacers)
+    width = img.get("width", "")
+    height = img.get("height", "")
+    try:
+        if width and int(width) < 10:
+            return False
+        if height and int(height) < 10:
+            return False
+    except ValueError:
+        pass
+    # Skip common tracking/ad domains
+    lower_src = src.lower()
+    skip_patterns = [
+        "tracking", "pixel", "beacon", "open.gif", "spacer",
+        "1x1", "transparent", "analytics", "doubleclick",
+        "facebook.com/tr", "google-analytics",
+    ]
+    return not any(p in lower_src for p in skip_patterns)
+
+
+def _html_to_text_with_images(html: str) -> str:
+    """Convert HTML to plain text, replacing substantive <img> tags with [IMAGE: url] markers.
+
+    This preserves image positions in the text flow so Gemini can associate
+    each image with the correct story based on proximity.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    # Replace <img> tags with markers (or remove if not substantive)
+    for img in soup.find_all("img"):
+        if _is_substantive_image(img):
+            img.replace_with(f'\n[IMAGE: {img["src"]}]\n')
+        else:
+            img.decompose()
+    # Convert the modified HTML to plain text
     h = html2text.HTML2Text()
     h.ignore_links = True
-    h.ignore_images = True
+    h.ignore_images = True  # any remaining <img> tags (shouldn't be any)
     h.body_width = 0
-    text = h.handle(html)
-    # Collapse excessive whitespace
+    text = h.handle(str(soup))
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()

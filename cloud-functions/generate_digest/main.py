@@ -85,10 +85,7 @@ STORY_EXTRACTION_SCHEMA = {
                     },
                     "sectionIndex": {"type": "integer"},
                     "positionRank": {"type": "integer"},
-                    "imageUrls": {
-                        "type": "array",
-                        "items": {"type": "string"}
-                    },
+                    "imageUrl": {"type": "string"},
                     "matchesExistingStoryId": {"type": "string"}
                 },
                 "required": ["headline", "description", "categories", "sectionIndex", "positionRank"]
@@ -346,10 +343,10 @@ SECTIONS:
 
 INSTRUCTIONS:
 - Extract each distinct news story from the newsletter sections above
-- For each story provide: headline, 1-2 sentence description, categories (from: {categories_str}), the sectionIndex where the story appears, its positionRank (1 = first story, 2 = second, etc.), and any image URLs found in that section
+- For each story provide: headline, 1-2 sentence description, categories (from: {categories_str}), the sectionIndex where the story appears, and its positionRank (1 = first story, 2 = second, etc.)
+- Images appear as [IMAGE: url] markers in the text. For each story, set imageUrl to the URL of the image most closely associated with that story (typically the image immediately above or beside the story's headline). If no image is clearly associated, omit imageUrl.
 - A story may belong to multiple categories
 - Ignore advertising, sponsored content, promotional sections, calls to action, table of contents, and editor's notes
-- Filter out tracking pixels, logos, and ad images — only include substantive content images (photos, charts, infographics)
 - Keep descriptions factual and concise (1-2 sentences)
 - If a story matches an existing story below, set matchesExistingStoryId to that story's id. Otherwise omit the field.
 {existing_block}
@@ -513,14 +510,17 @@ def extractStories(
     for story in extracted:
         match_id = story.get("matchesExistingStoryId", "")
 
+        section_idx = story.get("sectionIndex", 0)
+
         story_source = {
             **source_entry,
-            "sectionIndex": story.get("sectionIndex", 0),
+            "sectionIndex": section_idx,
             "positionRank": story.get("positionRank", 1),
         }
 
-        image_urls = story.get("imageUrls", [])
-        images = [{"url": url, "newsletterId": doc_id} for url in image_urls if url]
+        # Gemini assigns the most relevant image URL from [IMAGE: url] markers
+        image_url = story.get("imageUrl", "")
+        images = [{"url": image_url, "newsletterId": doc_id}] if image_url else []
 
         if match_id:
             # Merge into existing story
