@@ -123,21 +123,7 @@ struct DigestView: View {
     }
 
     private func topStoriesSection(_ stories: [DigestItem]) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Top Stories")
-                .font(.custom("Georgia-Bold", size: 26))
-                .foregroundColor(.primary)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 14)
-
-            VStack(spacing: 10) {
-                ForEach(stories, id: \.headline) { item in
-                    itemCard(item)
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.bottom, 16)
-        }
+        sectionView(DigestSection(title: "Top Stories", items: stories))
     }
 
     private var headerView: some View {
