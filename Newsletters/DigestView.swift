@@ -206,12 +206,12 @@ struct DigestView: View {
                         switch phase {
                         case .success(let image):
                             image.resizable().aspectRatio(contentMode: .fill)
+                                .frame(width: 100, height: 100)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
                         default:
-                            Color(.systemGray5)
+                            EmptyView()
                         }
                     }
-                    .frame(width: 100, height: 100)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
 
                 VStack(alignment: .leading, spacing: 5) {
