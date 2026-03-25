@@ -42,7 +42,6 @@ struct MainView: View {
             settingsViewModel.newsletterStore = newsletterStore
             settingsViewModel.fetchSettings()
             settingsViewModel.fetchDigestCategories()
-            settingsViewModel.syncSenderFilters()
 
             viewModel.fetchMetadata()
 

@@ -136,19 +136,6 @@ class SettingsViewModel: ObservableObject {
         return enabledNewsletters.contains(nl.id)
     }
 
-    /// Writes the full list of all sender emails to Firestore so AppsScript can read it.
-    func syncSenderFilters() {
-        guard let store = newsletterStore else { return }
-        let data: [String: Any] = [
-            "senderEmails": store.allSenderEmails
-        ]
-
-        db.collection("Settings").document("senderFilters").setData(data) { error in
-            if let error = error {
-                print("Error syncing sender filters: \(error.localizedDescription)")
-            }
-        }
-    }
 
     func isNotificationEnabled(_ newsletter: NewsletterInfo) -> Bool {
         notificationNewsletters.contains(newsletter.id)
