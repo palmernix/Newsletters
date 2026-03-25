@@ -212,10 +212,6 @@ struct DigestView: View {
                     }
                     .frame(width: 100, height: 100)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
-                } else {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(.systemGray5))
-                        .frame(width: 100, height: 100)
                 }
 
                 VStack(alignment: .leading, spacing: 5) {
