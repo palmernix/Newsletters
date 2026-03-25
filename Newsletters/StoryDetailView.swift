@@ -79,6 +79,11 @@ struct StoryDetailView: View {
         }
         .background(ivoryBg.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
+        .gesture(DragGesture().onEnded { gesture in
+            if gesture.translation.width > 80 && abs(gesture.translation.height) < 100 {
+                onDismiss()
+            }
+        })
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button(action: onDismiss) {
