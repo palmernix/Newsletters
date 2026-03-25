@@ -177,6 +177,7 @@ struct DigestView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 14)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
