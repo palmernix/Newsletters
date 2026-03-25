@@ -201,19 +201,6 @@ struct DigestView: View {
             isNavigating = true
         } label: {
             HStack(alignment: .top, spacing: 12) {
-                if let imageUrl = item.images?.first?.url, let url = URL(string: imageUrl) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image.resizable().aspectRatio(contentMode: .fill)
-                                .frame(width: 100, height: 100)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                        default:
-                            EmptyView()
-                        }
-                    }
-                }
-
                 VStack(alignment: .leading, spacing: 5) {
                     Text(item.headline)
                         .font(.custom("Georgia-Bold", size: 16))
@@ -230,6 +217,19 @@ struct DigestView: View {
 
                     if let source = item.sources.first {
                         sourceLabel(source)
+                    }
+                }
+
+                if let imageUrl = item.images?.first?.url, let url = URL(string: imageUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().aspectRatio(contentMode: .fill)
+                                .frame(width: 100, height: 100)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        default:
+                            EmptyView()
+                        }
                     }
                 }
             }
