@@ -38,6 +38,12 @@ class NewsletterMetadataViewModel: ObservableObject {
     @Published var newsletters: [NewsletterMetadata] = []
     /// False until the first snapshot of today's newsletters has arrived.
     @Published var hasLoadedToday = false
+    /// True while the first historical snapshot is being fetched and decoded.
+    @Published private(set) var isLoadingHistorical = false
+    /// False until the first historical snapshot has finished loading.
+    @Published private(set) var hasLoadedHistorical = false
+    /// A user-displayable error from the historical listener, if one occurs.
+    @Published private(set) var historicalLoadError: String?
 
     private var db = Firestore.firestore()
     private var todayListener: ListenerRegistration?
@@ -45,6 +51,10 @@ class NewsletterMetadataViewModel: ObservableObject {
     private var todayItems: [NewsletterMetadata] = []
     private var historicalItems: [NewsletterMetadata] = []
     private var dayChangeObserver: NSObjectProtocol?
+    private let metadataDecodingQueue = DispatchQueue(
+        label: "com.palmernix.synpsis.metadata-decoding",
+        qos: .userInitiated
+    )
 
     private var startOfToday: Date { Calendar.current.startOfDay(for: Date()) }
 
@@ -87,17 +97,47 @@ class NewsletterMetadataViewModel: ObservableObject {
     func loadHistoricalIfNeeded() {
         guard historicalListener == nil else { return }
         let startedAt = Date()
+        isLoadingHistorical = true
+        historicalLoadError = nil
         print("Setting up Firestore listener for historical metadata.")
 
         historicalListener = db.collection("NewsletterMetadata")
             .whereField("newsletterDate", isLessThan: startOfToday)
             .addSnapshotListener { [weak self] snapshot, error in
-                guard let self, let items = Self.decode(snapshot, error, label: "historical") else { return }
-                let elapsedMs = Int(Date().timeIntervalSince(startedAt) * 1000)
-                let source = snapshot?.metadata.isFromCache == true ? "cache" : "server"
-                print("[historical] \(items.count) newsletters from \(source) in \(elapsedMs)ms")
-                self.historicalItems = items
-                self.recompose()
+                guard let self else { return }
+                if let error {
+                    DispatchQueue.main.async {
+                        self.isLoadingHistorical = false
+                        self.hasLoadedHistorical = true
+                        self.historicalLoadError = error.localizedDescription
+                    }
+                    return
+                }
+                guard let snapshot else {
+                    DispatchQueue.main.async {
+                        self.isLoadingHistorical = false
+                        self.hasLoadedHistorical = true
+                        self.historicalLoadError = "No historical newsletters were returned."
+                    }
+                    return
+                }
+
+                let documents = snapshot.documents
+                let source = snapshot.metadata.isFromCache ? "cache" : "server"
+                self.metadataDecodingQueue.async { [weak self] in
+                    let items = Self.decode(documents, label: "historical")
+                    let elapsedMs = Int(Date().timeIntervalSince(startedAt) * 1000)
+
+                    DispatchQueue.main.async {
+                        guard let self else { return }
+                        print("[historical] \(items.count) newsletters from \(source) in \(elapsedMs)ms")
+                        self.historicalItems = items
+                        self.isLoadingHistorical = false
+                        self.hasLoadedHistorical = true
+                        self.historicalLoadError = nil
+                        self.recompose()
+                    }
+                }
             }
     }
 
@@ -130,7 +170,11 @@ class NewsletterMetadataViewModel: ObservableObject {
             print("[\(label)] No documents in snapshot")
             return nil
         }
-        return documents.compactMap { doc in
+        return decode(documents, label: label)
+    }
+
+    private static func decode(_ documents: [QueryDocumentSnapshot], label: String) -> [NewsletterMetadata] {
+        documents.compactMap { doc in
             do {
                 return try doc.data(as: NewsletterMetadata.self)
             } catch {

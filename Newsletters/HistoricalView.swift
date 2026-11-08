@@ -43,17 +43,42 @@ struct HistoricalView: View {
     var body: some View {
         NavigationView {
             List {
-                ForEach(sortedKeys, id: \.self) { key in
-                    let sorted = groupedNewsletters[key]?.sorted(by: { $0.newsletterDate > $1.newsletterDate }) ?? []
-                    HistoricalGroupSectionView(
-                        groupKey: key,
-                        newsletters: sorted,
-                        expandedGroup: $expandedGroup,
-                        selectedNewsletter: $selectedNewsletter,
-                        showingActionSheet: $showingActionSheet,
-                        isNavigating: $isNavigating,
-                        toggleReadStatus: toggleReadStatus
-                    )
+                if viewModel.isLoadingHistorical && historicalNewsletters.isEmpty {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                        Text("Loading historical newsletters…")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 40)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .listRowBackground(Color.clear)
+                } else if let error = viewModel.historicalLoadError, historicalNewsletters.isEmpty {
+                    Text("Couldn’t load historical newsletters: \(error)")
+                        .foregroundColor(.secondary)
+                        .padding(.vertical, 40)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .listRowBackground(Color.clear)
+                } else if viewModel.hasLoadedHistorical && historicalNewsletters.isEmpty {
+                    Text("No historical newsletters yet.")
+                        .foregroundColor(.secondary)
+                        .italic()
+                        .padding(.vertical, 40)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .listRowBackground(Color.clear)
+                } else {
+                    ForEach(sortedKeys, id: \.self) { key in
+                        let sorted = groupedNewsletters[key]?.sorted(by: { $0.newsletterDate > $1.newsletterDate }) ?? []
+                        HistoricalGroupSectionView(
+                            groupKey: key,
+                            newsletters: sorted,
+                            expandedGroup: $expandedGroup,
+                            selectedNewsletter: $selectedNewsletter,
+                            showingActionSheet: $showingActionSheet,
+                            isNavigating: $isNavigating,
+                            toggleReadStatus: toggleReadStatus
+                        )
+                    }
                 }
             }
             .actionSheet(isPresented: $showingActionSheet) {
@@ -73,7 +98,12 @@ struct HistoricalView: View {
             .background(Color(red: 0.953, green: 0.951, blue: 0.933))
             .navigationBarHidden(true)
         }
-        .onAppear { viewModel.loadHistoricalIfNeeded() }
+        .task {
+            // Let SwiftUI finish switching the segmented control before starting
+            // the potentially large historical Firestore query.
+            await Task.yield()
+            viewModel.loadHistoricalIfNeeded()
+        }
     }
 
     private func toggleReadStatus(_ newsletter: NewsletterMetadata) {
