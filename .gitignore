@@ -2,3 +2,5 @@
 *.p8
 firebase-debug.log
 .claude/
+xcuserdata/
+*.xcuserstate

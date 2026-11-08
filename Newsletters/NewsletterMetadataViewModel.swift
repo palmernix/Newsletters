@@ -27,51 +27,116 @@ struct NewsletterMetadata: Identifiable, Codable {
     }
 }
 
-// Create a view model that fetches data from Firestore.
+/// Fetches newsletter metadata from Firestore in two tiers so the Today tab
+/// never waits on the full history:
+///  - today's newsletters are listened to as soon as `fetchMetadata()` is called
+///  - everything older is listened to only once something asks for it via
+///    `loadHistoricalIfNeeded()` (the Historical tab).
+/// `newsletters` always exposes the union of both tiers.
 class NewsletterMetadataViewModel: ObservableObject {
+    /// Today's newsletters followed by historical ones (once loaded).
     @Published var newsletters: [NewsletterMetadata] = []
-    
+    /// False until the first snapshot of today's newsletters has arrived.
+    @Published var hasLoadedToday = false
+
     private var db = Firestore.firestore()
-    private var listener: ListenerRegistration?
-    
-    func fetchMetadata() {
-        print("Setting up Firestore metadata snapshot listener.")
+    private var todayListener: ListenerRegistration?
+    private var historicalListener: ListenerRegistration?
+    private var todayItems: [NewsletterMetadata] = []
+    private var historicalItems: [NewsletterMetadata] = []
+    private var dayChangeObserver: NSObjectProtocol?
 
-        listener = db.collection("NewsletterMetadata")
-            .addSnapshotListener { [weak self] (querySnapshot, error) in
-                if let error = error {
-                    print("Error fetching metadata: \(error)")
-                    return
-                }
-                
-                guard let documents = querySnapshot?.documents else {
-                    print("[fetchData] No documents in snapshot: \(error?.localizedDescription ?? "No error")")
-                    return
-                }
+    private var startOfToday: Date { Calendar.current.startOfDay(for: Date()) }
 
-                print("[fetchData] Number of documents returned: \(documents.count)")
-                
-                // For deeper debugging, you could log each document ID or partial data:
-                // documents.forEach { doc in print("[fetchData] docID: \(doc.documentID), data: \(doc.data())") }
-
-                do {
-                    // Attempt to decode ALL documents, throwing an error on the first failure.
-                    let fetchedNewsletters = try documents.map { doc -> NewsletterMetadata in
-                        try doc.data(as: NewsletterMetadata.self)
-                    }
-                    
-                    DispatchQueue.main.async {
-                        self?.newsletters = fetchedNewsletters
-                        print("Fetched \(fetchedNewsletters.count) newsletters")
-                    }
-                } catch {
-                    // If ANY document fails to decode, we catch the error here.
-                    print("Error decoding documents: \(error)")
-                }
+    init() {
+        // The query boundaries are fixed when a listener is created, so re-create
+        // them at midnight to keep "today" and "historical" partitioned correctly.
+        dayChangeObserver = NotificationCenter.default.addObserver(
+            forName: .NSCalendarDayChanged, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.restartListeners()
         }
     }
-    
+
+    deinit {
+        todayListener?.remove()
+        historicalListener?.remove()
+        dayChangeObserver.map { NotificationCenter.default.removeObserver($0) }
+    }
+
+    /// Starts listening to today's newsletters only.
+    func fetchMetadata() {
+        todayListener?.remove()
+        let startedAt = Date()
+        print("Setting up Firestore listener for today's metadata.")
+
+        todayListener = db.collection("NewsletterMetadata")
+            .whereField("newsletterDate", isGreaterThanOrEqualTo: startOfToday)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self, let items = Self.decode(snapshot, error, label: "today") else { return }
+                let elapsedMs = Int(Date().timeIntervalSince(startedAt) * 1000)
+                let source = snapshot?.metadata.isFromCache == true ? "cache" : "server"
+                print("[today] \(items.count) newsletters from \(source) in \(elapsedMs)ms")
+                self.todayItems = items
+                self.hasLoadedToday = true
+                self.recompose()
+            }
+    }
+
+    /// Starts listening to newsletters older than today. Safe to call repeatedly.
+    func loadHistoricalIfNeeded() {
+        guard historicalListener == nil else { return }
+        let startedAt = Date()
+        print("Setting up Firestore listener for historical metadata.")
+
+        historicalListener = db.collection("NewsletterMetadata")
+            .whereField("newsletterDate", isLessThan: startOfToday)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self, let items = Self.decode(snapshot, error, label: "historical") else { return }
+                let elapsedMs = Int(Date().timeIntervalSince(startedAt) * 1000)
+                let source = snapshot?.metadata.isFromCache == true ? "cache" : "server"
+                print("[historical] \(items.count) newsletters from \(source) in \(elapsedMs)ms")
+                self.historicalItems = items
+                self.recompose()
+            }
+    }
+
     func refresh() {
+        restartListeners()
+    }
+
+    private func restartListeners() {
+        let wasListeningToHistorical = historicalListener != nil
+        historicalListener?.remove()
+        historicalListener = nil
         fetchMetadata()
+        if wasListeningToHistorical {
+            loadHistoricalIfNeeded()
+        }
+    }
+
+    private func recompose() {
+        newsletters = todayItems + historicalItems
+    }
+
+    /// Decodes a snapshot, skipping (and logging) any document that fails to decode
+    /// so one bad document can't blank the whole list. Returns nil on a query error.
+    private static func decode(_ snapshot: QuerySnapshot?, _ error: Error?, label: String) -> [NewsletterMetadata]? {
+        if let error {
+            print("[\(label)] Error fetching metadata: \(error)")
+            return nil
+        }
+        guard let documents = snapshot?.documents else {
+            print("[\(label)] No documents in snapshot")
+            return nil
+        }
+        return documents.compactMap { doc in
+            do {
+                return try doc.data(as: NewsletterMetadata.self)
+            } catch {
+                print("[\(label)] Skipping undecodable document \(doc.documentID): \(error)")
+                return nil
+            }
+        }
     }
 }

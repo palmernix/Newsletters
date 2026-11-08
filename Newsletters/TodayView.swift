@@ -21,7 +21,12 @@ struct TodayView: View {
 
         NavigationView {
             List {
-                if todayNewsletters.isEmpty {
+                if !viewModel.hasLoadedToday {
+                    ProgressView()
+                        .padding(.vertical, 40)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .listRowBackground(Color.clear)
+                } else if todayNewsletters.isEmpty {
                     Text("No newsletters received yet today!")
                         .foregroundColor(.gray)
                         .italic()

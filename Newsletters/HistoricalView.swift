@@ -73,6 +73,7 @@ struct HistoricalView: View {
             .background(Color(red: 0.953, green: 0.951, blue: 0.933))
             .navigationBarHidden(true)
         }
+        .onAppear { viewModel.loadHistoricalIfNeeded() }
     }
 
     private func toggleReadStatus(_ newsletter: NewsletterMetadata) {
@@ -80,13 +81,12 @@ struct HistoricalView: View {
         let db = Firestore.firestore()
         let newValue = !(newsletter.isRead ?? false)
 
+        // The historical snapshot listener reflects this write back into the list.
         db.collection("NewsletterMetadata").document(docId).updateData([
             "isRead": newValue
         ]) { error in
-            if error == nil {
-                if let index = viewModel.newsletters.firstIndex(where: { $0.id == newsletter.id }) {
-                    viewModel.newsletters[index].isRead = newValue
-                }
+            if let error = error {
+                print("⚠️ Failed to update isRead: \(error.localizedDescription)")
             }
         }
     }
