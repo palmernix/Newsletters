@@ -10,7 +10,9 @@ from section_parser import parse_sections
 initialize_app()
 
 PROJECT_ID = "newsletters-c8650"
-LOCATION = "us-central1"
+# Gemini 3.1 Flash-Lite supports US multi-region, not us-central1.
+# Keep model processing in the US; the Firebase function stays in us-central1.
+LOCATION = "us"
 DEFAULT_SECTIONS = [
     "Business & Finance", "Startups & Venture Capital", "Artificial Intelligence",
     "US Politics", "World Politics", "Healthcare", "Science", "Technology",
@@ -469,7 +471,7 @@ def extractStories(
     client = genai.Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.1-flash-lite",
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
