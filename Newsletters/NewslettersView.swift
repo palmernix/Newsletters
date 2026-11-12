@@ -16,13 +16,16 @@ struct NewslettersView: View {
     var body: some View {
         VStack(spacing: 0) {
             if !isNavigating {
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(spacing: 0) {
                     Text("Newsletters")
-                        .font(.custom("Georgia-Bold", size: 40))
+                        .font(.custom("TimesNewRomanPS-BoldMT", size: 32, relativeTo: .largeTitle))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .accessibilityAddTraits(.isHeader)
                         .foregroundColor(.primary)
                         .padding(.horizontal, 20)
-                        .padding(.top, 20)
-                        .padding(.bottom, 10)
+                        .padding(.top, 8)
+                        .padding(.bottom, 12)
                     Picker("", selection: $selectedSegment) {
                         Text("Today").tag(0)
                         Text("Historical").tag(1)
