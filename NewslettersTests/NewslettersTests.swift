@@ -5,13 +5,16 @@
 //  Created by Palmer Nix on 4/3/25.
 //
 
+import Foundation
 import Testing
 @testable import Newsletters
 
 struct NewslettersTests {
 
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+    @Test func appBrandingPreservesIdentity() {
+        #expect(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String == "The Edition")
+        #expect(Bundle.main.bundleIdentifier == "com.palmernix.Newsletters")
+        #expect(Bundle.main.url(forResource: "GoogleService-Info", withExtension: "plist") != nil)
     }
 
 }

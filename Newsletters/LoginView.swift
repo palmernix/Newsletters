@@ -23,7 +23,7 @@ struct LoginView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            Text("Synpsis")
+            Text("The Edition")
                 .font(.largeTitle)
                 .fontWeight(.bold)
 

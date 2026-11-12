@@ -35,7 +35,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		53503B1D2D9EF82100EF5B9E /* Synpsis.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Synpsis.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		53503B1D2D9EF82100EF5B9E /* The Edition.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "The Edition.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		53503B2A2D9EF82200EF5B9E /* NewslettersTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NewslettersTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		53503B342D9EF82200EF5B9E /* NewslettersUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NewslettersUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -125,7 +125,7 @@
 		53503B1E2D9EF82100EF5B9E /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				53503B1D2D9EF82100EF5B9E /* Synpsis.app */,
+				53503B1D2D9EF82100EF5B9E /* The Edition.app */,
 				53503B2A2D9EF82200EF5B9E /* NewslettersTests.xctest */,
 				53503B342D9EF82200EF5B9E /* NewslettersUITests.xctest */,
 			);
@@ -162,7 +162,7 @@
 				4780C4D72F6DEEC9004DC7DC /* FirebaseMessaging */,
 			);
 			productName = Newsletters;
-			productReference = 53503B1D2D9EF82100EF5B9E /* Synpsis.app */;
+			productReference = 53503B1D2D9EF82100EF5B9E /* The Edition.app */;
 			productType = "com.apple.product-type.application";
 		};
 		53503B292D9EF82200EF5B9E /* NewslettersTests */ = {
@@ -468,7 +468,9 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.palmernix.Newsletters;
-				PRODUCT_NAME = Synpsis;
+				PRODUCT_NAME = "The Edition";
+				PRODUCT_MODULE_NAME = Newsletters;
+				INFOPLIST_KEY_CFBundleDisplayName = "The Edition";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -499,7 +501,9 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.palmernix.Newsletters;
-				PRODUCT_NAME = Synpsis;
+				PRODUCT_NAME = "The Edition";
+				PRODUCT_MODULE_NAME = Newsletters;
+				INFOPLIST_KEY_CFBundleDisplayName = "The Edition";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -521,7 +525,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Newsletters.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Newsletters";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/The Edition.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/The Edition";
 			};
 			name = Debug;
 		};
@@ -540,7 +544,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Newsletters.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Newsletters";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/The Edition.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/The Edition";
 			};
 			name = Release;
 		};

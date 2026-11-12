@@ -17,7 +17,7 @@ struct NewslettersView: View {
         VStack(spacing: 0) {
             if !isNavigating {
                 VStack(spacing: 0) {
-                    Text("Newsletters")
+                    Text("The Edition")
                         .font(.custom("TimesNewRomanPS-BoldMT", size: 32, relativeTo: .largeTitle))
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)

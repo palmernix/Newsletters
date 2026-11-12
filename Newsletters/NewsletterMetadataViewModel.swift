@@ -52,7 +52,7 @@ class NewsletterMetadataViewModel: ObservableObject {
     private var historicalItems: [NewsletterMetadata] = []
     private var dayChangeObserver: NSObjectProtocol?
     private let metadataDecodingQueue = DispatchQueue(
-        label: "com.palmernix.synpsis.metadata-decoding",
+        label: "com.palmernix.the-edition.metadata-decoding",
         qos: .userInitiated
     )
 
