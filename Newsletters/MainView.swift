@@ -34,6 +34,7 @@ struct MainView: View {
                 BottomBar(selectedTab: $selectedTab)
             }
         }
+        .environment(\.newsletterSources, newsletterStore.newsletters)
         // Stale navigation flag can't carry over when the user switches tabs
         .onChange(of: selectedTab) { _ in isNavigatingToReader = false }
         .onAppear {

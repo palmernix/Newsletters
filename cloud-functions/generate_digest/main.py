@@ -6,6 +6,7 @@ from google.cloud.firestore_v1 import FieldFilter
 import json
 from datetime import datetime, timezone, timedelta
 from section_parser import parse_sections
+from newsletter_attribution import load_newsletter_sources
 
 initialize_app()
 
@@ -18,57 +19,6 @@ DEFAULT_SECTIONS = [
     "US Politics", "World Politics", "Healthcare", "Science", "Technology",
     "Climate & Environment", "Culture & Entertainment", "Sports", "Other"
 ]
-
-# Sender map cache (loaded from Firestore Config/newsletters on first use per invocation)
-_sender_map_cache: dict | None = None
-
-
-def _load_sender_map(db) -> dict:
-    """Load the newsletter config from Config/newsletters in Firestore.
-
-    The document is keyed by sender ID with fields:
-        { "emails": ["email@domain"], "displayName": "Display Name", "group": "...", "sortOrder": N }
-
-    Returns a dict: { email_address: { "senderId": str, "displayName": str } }
-    """
-    global _sender_map_cache
-    if _sender_map_cache is not None:
-        return _sender_map_cache
-
-    doc = db.collection("Config").document("newsletters").get()
-    email_map = {}
-    if doc.exists:
-        data = doc.to_dict()
-        for sender_id, info in data.items():
-            display_name = info.get("displayName", sender_id)
-            for email in info.get("emails", []):
-                email_map[email.lower()] = {
-                    "senderId": sender_id,
-                    "displayName": display_name,
-                }
-    _sender_map_cache = email_map
-    return email_map
-
-
-def resolve_sender_id(sender: str, db=None) -> str | None:
-    """Map a sender string like 'Name <email@domain>' to a sender ID."""
-    if db is None:
-        db = firestore.client()
-    email = _extract_email(sender)
-    sender_map = _load_sender_map(db)
-    entry = sender_map.get(email)
-    return entry["senderId"] if entry else None
-
-
-def resolve_sender_display_name(sender: str, db=None) -> str | None:
-    """Map a sender string to a display name via the sender map."""
-    if db is None:
-        db = firestore.client()
-    email = _extract_email(sender)
-    sender_map = _load_sender_map(db)
-    entry = sender_map.get(email)
-    return entry["displayName"] if entry else None
-
 
 # Schema for story extraction from a single newsletter
 STORY_EXTRACTION_SCHEMA = {
@@ -150,11 +100,13 @@ def generateDigest(req: https_fn.CallableRequest) -> dict:
                    .where("newsletterDate", "<", today_end)
                    .stream())
 
+    sources = load_newsletter_sources(db)
     newsletters = []
     for doc in meta_docs:
         data = doc.to_dict()
         sender = data.get("sender", "")
-        sender_id = resolve_sender_id(sender, db)
+        source = sources.resolve(data)
+        sender_id = source.id if source else None
         if sender_id and sender_id in enabled_senders:
             newsletters.append({
                 "id": doc.id,
@@ -255,15 +207,6 @@ def _empty_digest(now_iso: str) -> dict:
     return {"generatedAt": now_iso, "newsletterCount": 0, "newsletterIds": [], "sections": []}
 
 
-def _extract_email(sender: str) -> str:
-    """Extract email address from 'Name <email@domain>' format."""
-    if "<" in sender and ">" in sender:
-        return sender.split("<")[1].rstrip(">").strip().lower()
-    if "@" in sender:
-        return sender.strip().lower()
-    return ""
-
-
 @firestore_fn.on_document_created(
     document="NewsletterMetadata/{docId}",
     region="us-central1"
@@ -277,13 +220,12 @@ def notifyNewsletter(
     data = event.data.to_dict()
     sender = data.get("sender", "")
     subject = data.get("subject", "New newsletter")
-    display_name = extract_display_name(sender)
-
     db = firestore.client()
-    sender_id = resolve_sender_id(sender, db)
-
-    if not sender_id:
+    source = load_newsletter_sources(db).resolve(data)
+    if source is None:
         return
+    sender_id = source.id
+    display_name = source.display_name if data.get("newsletterSourceId") else extract_display_name(sender)
 
     # Find users with notifications enabled for this sender ID
     try:
@@ -408,12 +350,12 @@ def extractStories(
     sender = data.get("sender", "")
 
     db = firestore.client()
-    sender_id = resolve_sender_id(sender, db)
-    if not sender_id:
-        print(f"extractStories: unknown sender '{sender}', skipping")
+    source = load_newsletter_sources(db).resolve(data)
+    if source is None:
+        print(f"extractStories: unresolved source for {doc_id}, skipping")
         return
-
-    display_name = resolve_sender_display_name(sender, db) or extract_display_name(sender)
+    sender_id = source.id
+    display_name = source.display_name or extract_display_name(sender)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     # 1. Fetch newsletter HTML body

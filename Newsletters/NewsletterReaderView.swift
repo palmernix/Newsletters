@@ -1,6 +1,17 @@
 import SwiftUI
 import FirebaseFirestore
 
+private struct NewsletterSourcesKey: EnvironmentKey {
+    static let defaultValue: [NewsletterInfo] = []
+}
+
+extension EnvironmentValues {
+    var newsletterSources: [NewsletterInfo] {
+        get { self[NewsletterSourcesKey.self] }
+        set { self[NewsletterSourcesKey.self] = newValue }
+    }
+}
+
 struct NewsletterReaderView: View {
     let newsletter: NewsletterMetadata  // Metadata passed from previous view, with its document ID available in newsletter.id
     var scrollToSection: Int? = nil
@@ -8,6 +19,12 @@ struct NewsletterReaderView: View {
 
     @StateObject private var dataVM = NewsletterDataViewModel()
     @Environment(\.presentationMode) private var presentationMode
+    @Environment(\.newsletterSources) private var newsletterSources
+
+    private var sourceName: String {
+        guard let sourceID = newsletter.newsletterSourceId else { return newsletter.vendorName }
+        return newsletterSources.first { $0.id == sourceID }?.displayName ?? newsletter.vendorName
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,7 +45,7 @@ struct NewsletterReaderView: View {
 
                 // Center: Sender and subject
                 VStack(spacing: 2) {
-                    Text(newsletter.vendorName)
+                    Text(sourceName)
                         .font(.headline)
                     Text(newsletter.subject)
                         .font(.subheadline)

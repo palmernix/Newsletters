@@ -11,7 +11,9 @@ struct TodayView: View {
 
     var body: some View {
         let todayNewsletters = viewModel.newsletters.filter { isToday($0.newsletterDate) && settingsViewModel.shouldShow($0) }
-        let groups = todayNewsletters.groupedForToday()
+        let groups = todayNewsletters.groupedForToday { newsletter in
+            settingsViewModel.newsletterStore?.configuredSource(for: newsletter)?.group
+        }
         let customOrder = ["The New York Times", "Morning Brew", "Sigma Xi", "HEATED"]
         let sortedKeys = groups.keys.sorted {
             let i1 = customOrder.firstIndex(of: $0) ?? Int.max
@@ -39,6 +41,7 @@ struct TodayView: View {
                             ForEach(sortedNewsletters) { newsletter in
                                 NewsletterMetadataRow(
                                     newsletter: newsletter,
+                                    sourceName: settingsViewModel.newsletterStore?.configuredSource(for: newsletter)?.displayName,
                                     isSelected: selectedNewsletter?.id == newsletter.id,
                                     isNavigating: $isNavigating,
                                     onTap: {
@@ -129,6 +132,7 @@ struct TodayView: View {
 
 struct NewsletterMetadataRow: View {
     let newsletter: NewsletterMetadata
+    var sourceName: String? = nil
     let isSelected: Bool
     @Binding var isNavigating: Bool
     let onTap: () -> Void
@@ -148,7 +152,7 @@ struct NewsletterMetadataRow: View {
             .opacity(0)
 
             VStack(alignment: .leading, spacing: 4) {
-                if newsletter.vendorName == "The New York Times" {
+                if sourceName == nil && newsletter.vendorName == "The New York Times" {
                     let parsed = parseNYTSubject(newsletter.subject)
                     Text(parsed.0)
                         .font(.headline)
@@ -160,7 +164,7 @@ struct NewsletterMetadataRow: View {
                         .foregroundColor((newsletter.isRead ?? false) ? .gray : .primary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    Text(newsletter.vendorName)
+                    Text(sourceName ?? newsletter.vendorName)
                         .font(.headline)
                         .foregroundColor((newsletter.isRead ?? false) ? .gray : .primary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -199,11 +203,15 @@ struct NewsletterMetadataRow: View {
 // MARK: - Extensions
 
 extension Array where Element == NewsletterMetadata {
-    func groupedForToday() -> [String: [NewsletterMetadata]] {
+    func groupedForToday(
+        configuredGroup: (NewsletterMetadata) -> String? = { _ in nil }
+    ) -> [String: [NewsletterMetadata]] {
         var groups: [String: [NewsletterMetadata]] = [:]
         for newsletter in self {
             let key: String
-            if newsletter.vendorName == "The New York Times" {
+            if let group = configuredGroup(newsletter) {
+                key = group
+            } else if newsletter.vendorName == "The New York Times" {
                 key = "The New York Times"
             } else if ["Morning Brew", "IT Brew", "Tech Brew"].contains(newsletter.vendorName) {
                 key = "Morning Brew"

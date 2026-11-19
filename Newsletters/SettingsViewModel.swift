@@ -128,11 +128,13 @@ class SettingsViewModel: ObservableObject {
         enabledNewsletters.contains(newsletter.id)
     }
 
-    /// Check if a newsletter metadata item should be shown based on its sender.
+    /// Check visibility by configured source ID, falling back to legacy sender matching.
     /// Shows all newsletters while the store is still loading.
     func shouldShow(_ metadata: NewsletterMetadata) -> Bool {
         guard let store = newsletterStore, store.isLoaded else { return true }
-        guard let nl = store.from(sender: metadata.sender) else { return false }
+        guard let nl = store.source(for: metadata) else {
+            return false
+        }
         return enabledNewsletters.contains(nl.id)
     }
 

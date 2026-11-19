@@ -15,6 +15,7 @@ struct NewsletterMetadata: Identifiable, Codable {
     var subject: String
     var content: String?
     var isRead: Bool?
+    var newsletterSourceId: String? = nil
 
     var vendorName: String {
         // Look for the first occurrence of "<" in the sender string.

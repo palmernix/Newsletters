@@ -67,6 +67,21 @@ class NewsletterStore: ObservableObject {
         newsletters.filter { $0.group == group }.sorted { $0.sortOrder < $1.sortOrder }
     }
 
+    /// Resolve only an explicitly stored, configured source ID.
+    func configuredSource(for metadata: NewsletterMetadata) -> NewsletterInfo? {
+        guard let sourceID = metadata.newsletterSourceId else { return nil }
+        return newsletters.first { $0.id == sourceID }
+    }
+
+    /// A present ID is authoritative, even when its configuration is missing.
+    /// Fall back to the sender only for older rows that do not carry an ID.
+    func source(for metadata: NewsletterMetadata) -> NewsletterInfo? {
+        guard let sourceID = metadata.newsletterSourceId, !sourceID.isEmpty else {
+            return from(sender: metadata.sender)
+        }
+        return configuredSource(for: metadata)
+    }
+
     /// Find the newsletter matching a sender string like "Name <email@domain>".
     func from(sender: String) -> NewsletterInfo? {
         newsletters.first { $0.matches(sender: sender) }

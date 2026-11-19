@@ -84,7 +84,7 @@ class DigestViewModel: ObservableObject {
         }
 
         let anyEnabled = todayItems.contains { meta in
-            guard let nl = newsletterStore?.from(sender: meta.sender) else { return false }
+            guard let nl = newsletterStore?.source(for: meta) else { return false }
             return enabledSenders.contains(nl.id)
         }
         if !anyEnabled {
